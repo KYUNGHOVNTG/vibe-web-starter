@@ -1,401 +1,388 @@
-# AI 데이터 분석 웹 서비스 템플릿
+# 🚀 AI 데이터 분석 웹 서비스 템플릿
 
-FastAPI + React 기반의 풀스택 웹 애플리케이션
+> **"유지보수성 최우선" 및 "모듈화"를 핵심 가치로 하는 바이브 코딩(Vibe Coding) 환경**
 
-## 프로젝트 개요
+FastAPI + SQLAlchemy 2.0 + React 19 + Tailwind 4 기반의 엔터프라이즈급 풀스택 웹 애플리케이션
 
-이 프로젝트는 AI 데이터 분석 웹 서비스를 위한 재사용 가능한 풀스택 템플릿입니다.
-- **백엔드**: FastAPI + SQLAlchemy 기반의 확장 가능한 API 서버
-- **프론트엔드**: React + Vite + TypeScript 기반의 모던 웹 인터페이스
+---
 
-도메인 플러그인 구조를 통해 새로운 기능을 쉽게 추가할 수 있도록 설계되었습니다.
+## 📖 목차
 
-### 주요 특징
+- [프로젝트 비전](#-프로젝트-비전)
+- [핵심 철학](#-핵심-철학)
+- [기술 스택 아키텍처](#-기술-스택-아키텍처)
+- [프로젝트 구조](#-프로젝트-구조)
+- [아키텍처 개요](#-아키텍처-개요)
+- [빠른 시작](#-빠른-시작)
+- [도메인 플러그인 추가하기](#-도메인-플러그인-추가하기)
+- [개발 가이드](#-개발-가이드)
+- [문서](#-문서)
 
-- **계층화된 아키텍처**: Router → Service → Provider/Calculator/Formatter
-- **도메인 플러그인 구조**: 새로운 도메인을 독립적으로 추가 가능
-- **모든 비즈니스 로직은 클래스 기반**: 절차지향 함수 사용 금지
-- **타입 안전성**: Pydantic v2 + SQLAlchemy 2.0
-- **비동기 처리**: async/await 기반
-- **확장 가능**: 명확한 패턴과 추상 클래스 제공
+---
 
-## 기술 스택
+## 🎯 프로젝트 비전
 
-### 백엔드
-- **Python**: 3.12
-- **Web Framework**: FastAPI
-- **ORM**: SQLAlchemy 2.0 (async)
+이 프로젝트는 **확장 가능하고 유지보수하기 쉬운 AI 데이터 분석 웹 서비스**를 위한 생산급(Production-Ready) 풀스택 템플릿입니다.
+
+### 왜 이 템플릿인가?
+
+- **도메인 플러그인 구조**: 새로운 비즈니스 도메인을 독립적으로 추가 가능 (충돌 최소화)
+- **계층화된 아키텍처**: 명확한 책임 분리로 테스트 가능하고 유지보수 쉬움
+- **타입 안전성**: Pydantic v2 + SQLAlchemy 2.0 + TypeScript로 런타임 에러 최소화
+- **비동기 최적화**: async/await 기반으로 높은 처리량 보장
+- **모던 기술 스택**: React 19, Tailwind 4, Zustand 등 최신 기술 적용
+
+---
+
+## 💡 핵심 철학
+
+### 1. **유지보수성 최우선**
+- 모든 비즈니스 로직은 **클래스 기반**으로 작성 (절차지향 함수 금지)
+- 명확한 **계층화된 폴더 구조** (Router-Service-Provider-Calculator-Formatter)
+- **단일 책임 원칙(SRP)** 준수: 각 클래스는 하나의 역할만 담당
+
+### 2. **모듈화 & 도메인 독립성**
+- 각 도메인은 **자체 완결적(Self-contained)** 구조
+- 도메인 간 의존성 최소화로 **병렬 개발** 가능
+- 새로운 기능 추가 시 **기존 코드 변경 최소화**
+
+### 3. **타입 안전성**
+- 백엔드: Pydantic v2로 런타임 검증 + mypy로 정적 타입 체크
+- 프론트엔드: TypeScript로 컴파일 타임 에러 사전 방지
+- 계층 간 데이터 전달은 **명시적 DTO(Data Transfer Object)** 사용
+
+### 4. **테스트 가능성**
+- 의존성 주입(Dependency Injection) 패턴으로 Mock 가능
+- 순수 함수(Calculator) / Side Effect 함수(Provider) 명확히 분리
+- Unit/Integration 테스트 작성 가능한 구조
+
+---
+
+## 🏗️ 기술 스택 아키텍처
+
+### 백엔드 (Python 3.12)
+
+| 레이어 | 기술 | 목적 |
+|--------|------|------|
+| **Web Framework** | FastAPI 0.109.0 | 고성능 비동기 REST API, 자동 문서화 |
+| **ORM** | SQLAlchemy 2.0.25 (async) | 비동기 데이터베이스 접근, 타입 안전 쿼리 |
+| **Database Driver** | asyncpg 0.29.0 | PostgreSQL 비동기 드라이버 |
+| **Validation** | Pydantic v2.5.3 | 런타임 데이터 검증, 자동 API 문서화 |
+| **Authentication** | python-jose 3.3.0 + passlib 1.7.4 | JWT 토큰 + 비밀번호 해싱 |
+| **Migration** | Alembic 1.13.1 | 데이터베이스 스키마 버전 관리 |
+| **Testing** | pytest 7.4.4 + pytest-asyncio 0.23.3 | 비동기 테스트 지원 |
+| **Code Quality** | black + isort + ruff + mypy | 자동 포맷팅, 린팅, 타입 체크 |
+
+### 프론트엔드 (TypeScript 5.9)
+
+| 레이어 | 기술 | 목적 |
+|--------|------|------|
+| **UI Framework** | React 19.2.0 | 선언적 UI, 최신 React 기능 (Concurrent Features) |
+| **Build Tool** | Vite 7.2.4 | 빠른 HMR, 최적화된 프로덕션 빌드 |
+| **Styling** | Tailwind CSS 4.1.18 | 유틸리티 우선 CSS, 모던 핀테크 디자인 |
+| **State Management** | Zustand 5.0.9 | 경량 상태 관리, Redux 대체 |
+| **HTTP Client** | Axios 1.13.2 | API 통신, 인터셉터 지원 |
+| **Routing** | React Router DOM 7.12.0 | SPA 라우팅 |
+| **Animation** | Framer Motion 12.25.0 | 부드러운 UI 애니메이션 |
+| **Icons** | Lucide React 0.562.0 | 일관된 아이콘 시스템 |
+
+### 인프라 & DevOps
+
 - **Database**: PostgreSQL (asyncpg)
-- **Validation**: Pydantic v2
-- **Testing**: pytest + pytest-asyncio
-- **Code Quality**: black, isort, ruff, mypy
+- **Package Manager**:
+  - Backend: pip + pyproject.toml
+  - Frontend: npm (pnpm/yarn 호환)
+- **Version Control**: Git + GitHub
+- **Editor Support**: Cursor / Claude AI 에이전트 최적화 (`.cursorrules` 포함)
 
-### 프론트엔드
-- **Framework**: React 19
-- **Build Tool**: Vite 7
-- **Language**: TypeScript 5.9
-- **Styling**: Tailwind CSS 4
-- **State Management**: Zustand
-- **HTTP Client**: Axios
-- **Animation**: Framer Motion
-- **Routing**: React Router DOM
+---
 
-## 프로젝트 구조
+## 📂 프로젝트 구조
 
 ```
 ai-worker-project/
-├── server/                     # 백엔드 (FastAPI)
-│   ├── main.py                 # FastAPI 애플리케이션 진입점
+├── 📁 server/                          # 백엔드 (FastAPI)
+│   ├── main.py                         # FastAPI 애플리케이션 진입점
 │   └── app/
-│       ├── core/               # 핵심 인프라
-│       │   ├── config.py       # 설정 관리
-│       │   ├── database.py     # DB 연결 및 세션
-│       │   └── dependencies.py # FastAPI 의존성
-│       ├── shared/             # 공유 컴포넌트
-│       │   ├── base/           # 추상 베이스 클래스
-│       │   ├── exceptions/     # 커스텀 예외
-│       │   └── types/          # 공통 타입
-│       ├── domain/             # 비즈니스 도메인
-│       ├── examples/           # 예제 도메인
-│       │   └── sample_domain/  # 샘플 도메인 구현
-│       └── api/
+│       ├── 📁 core/                    # 핵심 인프라
+│       │   ├── config.py               # 환경 설정 (Pydantic Settings)
+│       │   ├── database.py             # SQLAlchemy 엔진 & 세션
+│       │   └── dependencies.py         # FastAPI DI (DB, Auth, Pagination)
+│       ├── 📁 shared/                  # 공유 컴포넌트
+│       │   ├── 📁 base/                # 추상 베이스 클래스
+│       │   │   ├── service.py          # BaseService (Facade + Template Method)
+│       │   │   ├── provider.py         # BaseProvider (Data Access)
+│       │   │   ├── calculator.py       # BaseCalculator (Pure Logic)
+│       │   │   └── formatter.py        # BaseFormatter (Presentation)
+│       │   ├── 📁 exceptions/          # 커스텀 예외 계층구조
+│       │   └── 📁 types/               # 공통 타입 (ServiceResult, DTOs)
+│       ├── 📁 domain/                  # 🎯 비즈니스 도메인 (여기에 새 기능 추가!)
+│       ├── 📁 examples/                # 참고용 예제
+│       │   └── sample_domain/          # 샘플 도메인 구현 (템플릿으로 활용)
+│       │       ├── service.py          # SampleDomainService
+│       │       ├── models/             # SQLAlchemy 모델
+│       │       ├── schemas/            # Pydantic 스키마 (Request/Response)
+│       │       ├── providers/          # 데이터 조회 (SampleDataProvider)
+│       │       ├── calculators/        # 비즈니스 로직 (SampleAnalysisCalculator)
+│       │       └── formatters/         # 응답 포맷팅 (SampleResponseFormatter)
+│       └── 📁 api/
 │           └── v1/
-│               ├── endpoints/  # API 엔드포인트
-│               └── router.py   # 라우터 통합
-├── client/                     # 프론트엔드 (React + Vite)
-│   ├── src/
-│   │   ├── components/         # React 컴포넌트
-│   │   ├── pages/              # 페이지 컴포넌트
-│   │   ├── store/              # Zustand 상태 관리
-│   │   ├── api/                # API 호출 함수
-│   │   ├── types/              # TypeScript 타입
-│   │   └── App.tsx             # 메인 App 컴포넌트
-│   ├── public/                 # 정적 파일
-│   ├── package.json            # npm 의존성
-│   ├── vite.config.ts          # Vite 설정
-│   └── tsconfig.json           # TypeScript 설정
-├── tests/                      # 테스트
-│   ├── unit/
-│   └── integration/
-├── requirements.txt            # Python 의존성
-├── pyproject.toml              # Python 프로젝트 설정
-└── .env.example                # 환경 변수 예제
+│               ├── router.py           # API 라우터 통합
+│               └── endpoints/          # 도메인별 엔드포인트
+│
+├── 📁 client/                          # 프론트엔드 (React + Vite)
+│   ├── 📁 src/
+│   │   ├── main.tsx                    # React 진입점
+│   │   ├── App.tsx                     # 메인 앱 컴포넌트
+│   │   ├── 📁 core/                    # 핵심 유틸리티 & 인프라
+│   │   │   ├── 📁 api/                 # API 클라이언트 (Axios 싱글톤)
+│   │   │   ├── 📁 hooks/               # 커스텀 훅 (useApi, useDebounce)
+│   │   │   ├── 📁 layout/              # 레이아웃 (Header, Sidebar, MainLayout)
+│   │   │   ├── 📁 store/               # 전역 상태 (useAuthStore)
+│   │   │   └── 📁 ui/                  # 재사용 UI 컴포넌트 (Button, Card, Input)
+│   │   ├── 📁 domains/                 # 🎯 도메인별 기능 (백엔드 미러링)
+│   │   │   └── sample/                 # 샘플 도메인
+│   │   │       ├── api.ts              # API 호출 함수
+│   │   │       ├── store.ts            # Zustand 스토어 (useSampleStore)
+│   │   │       ├── types.ts            # TypeScript 타입
+│   │   │       ├── components/         # 도메인 전용 컴포넌트
+│   │   │       └── pages/              # 도메인 페이지
+│   │   └── 📁 types/                   # 전역 TypeScript 타입
+│   ├── package.json                    # npm 의존성
+│   ├── vite.config.ts                  # Vite 설정 (프록시, 플러그인)
+│   └── tsconfig.json                   # TypeScript 설정
+│
+├── 📁 tests/                           # 테스트
+│   ├── unit/                           # 단위 테스트
+│   ├── integration/                    # 통합 테스트
+│   └── conftest.py                     # pytest 설정
+│
+├── 📄 .cursorrules                     # Cursor/Claude AI 코딩 규칙
+├── 📄 DEVELOPMENT_GUIDE.md             # 개발 가이드 (도메인 추가 체크리스트)
+├── 📄 ARCHITECTURE.md                  # 상세 아키텍처 문서
+├── 📄 requirements.txt                 # Python 의존성
+├── 📄 pyproject.toml                   # Python 프로젝트 설정
+└── 📄 .env.example                     # 환경 변수 예제
 ```
 
-## 아키텍처
+---
+
+## 🔧 아키텍처 개요
+
+### 계층화된 아키텍처 (Layered Architecture)
 
 ```
-┌─────────────────────────────────────────────┐
-│            FastAPI Router (API)             │
-│         /api/v1/sample/analyze              │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│          Service (비즈니스 로직 조율)          │
-│       SampleDomainService.execute()         │
-└─────┬───────────┬──────────────┬────────────┘
-      │           │              │
-      ▼           ▼              ▼
-┌─────────┐ ┌────────────┐ ┌────────────┐
-│Provider │ │Calculator  │ │Formatter   │
-│데이터조회│ │계산/분석    │ │응답포맷팅   │
-└─────────┘ └────────────┘ └────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    HTTP Request (POST /api/v1/sample/analyze)   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  🌐 Router Layer (FastAPI)                                      │
+│  • HTTP 요청/응답 처리                                           │
+│  • Pydantic 입력 검증                                           │
+│  • 에러 핸들링 (try/except → HTTP status code)                   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  🎯 Service Layer (Facade + Template Method Pattern)           │
+│  • 비즈니스 로직 조율 (Provider → Calculator → Formatter)        │
+│  • 트랜잭션 관리 & 권한 검증                                     │
+│  • before_execute() / after_execute() 훅 제공                   │
+└───────────┬──────────────────────┬──────────────────────────────┘
+            │                      │
+            ▼                      ▼
+┌───────────────────┐    ┌──────────────────────┐    ┌────────────────────┐
+│  📦 Provider      │    │  🧮 Calculator       │    │  📝 Formatter      │
+│  (Data Layer)     │    │  (Business Logic)    │    │  (Presentation)    │
+│                   │    │                      │    │                    │
+│  • DB 쿼리        │    │  • 순수 함수         │    │  • API 응답 포맷   │
+│  • 외부 API 호출  │    │  • 통계 분석         │    │  • 필드 매핑       │
+│  • 파일 I/O       │    │  • 데이터 변환       │    │  • 민감정보 마스킹 │
+│  • 캐시 조회      │    │  • 이상 탐지         │    │  • 날짜/시간 포맷  │
+└───────────────────┘    └──────────────────────┘    └────────────────────┘
 ```
 
 ### 각 계층의 역할
 
-1. **Router** (API Layer)
-   - HTTP 요청 수신
-   - 입력 검증 (Pydantic)
-   - Service 호출
-   - HTTP 응답 반환
+| 계층 | 클래스 예시 | 책임 | 패턴 |
+|------|------------|------|------|
+| **Router** | `sample.py` | HTTP 요청 수신, 입력 검증, Service 호출, HTTP 응답 반환 | FastAPI Route Decorator |
+| **Service** | `BaseService[TRequest, TResponse]` | Provider/Calculator/Formatter 조율, 트랜잭션 관리, 에러 핸들링 | Facade, Template Method |
+| **Provider** | `BaseProvider[TInput, TOutput]` | 데이터 조회 (DB/API/Cache), Side Effect 허용 | Strategy, Dependency Injection |
+| **Calculator** | `BaseCalculator[TInput, TOutput]` | 순수 계산 로직, Side Effect 금지, 테스트 가능 | Pure Functions |
+| **Formatter** | `BaseFormatter[TInput, TOutput]` | 내부 데이터 → API 응답 변환, 직렬화 | Adapter |
 
-2. **Service** (Business Logic Layer)
-   - Provider, Calculator, Formatter 조율
-   - 트랜잭션 관리
-   - 권한 검증
-   - 에러 핸들링
-
-3. **Provider** (Data Access Layer)
-   - 데이터베이스 쿼리
-   - 외부 API 호출
-   - 파일 시스템 접근
-   - 캐시 조회
-
-4. **Calculator** (Computation Layer)
-   - 순수한 계산 로직
-   - 데이터 분석
-   - 통계 처리
-   - 알고리즘 적용
-
-5. **Formatter** (Presentation Layer)
-   - API 응답 형식 변환
-   - 데이터 직렬화
-   - 민감정보 마스킹
-
-자세한 내용은 [ARCHITECTURE.md](ARCHITECTURE.md)를 참조하세요.
-
-## 🚀 로컬 환경에서 실행하기
-
-이 가이드는 Docker 없이 로컬 환경에서 백엔드와 프론트엔드를 실행하는 방법을 설명합니다.
-
-### 📋 사전 준비사항
-
-시작하기 전에 다음 프로그램들이 설치되어 있어야 합니다:
-
-1. **Python 3.12 이상**
-   - 설치 확인: 터미널에서 `python3 --version` 또는 `python --version` 실행
-   - 다운로드: https://www.python.org/downloads/
-
-2. **Node.js 18 이상 및 npm**
-   - 설치 확인: 터미널에서 `node --version` 및 `npm --version` 실행
-   - 다운로드: https://nodejs.org/
-
-3. **PostgreSQL 데이터베이스**
-   - 설치 확인: 터미널에서 `psql --version` 실행
-   - 다운로드: https://www.postgresql.org/download/
-   - 설치 후 PostgreSQL 서비스가 실행 중이어야 합니다
-
----
-
-## 1️⃣ 백엔드 (FastAPI) 실행하기
-
-### 1-1. 프로젝트 루트 디렉토리로 이동
-```bash
-cd ai-worker-project
-```
-> 💡 **왜 하는가?**: 백엔드 설정을 시작하기 위해 프로젝트의 최상위 폴더로 이동합니다.
-
-### 1-2. Python 가상환경 생성
-```bash
-python3 -m venv .venv
-```
-> 💡 **왜 하는가?**: 프로젝트 전용 독립적인 Python 환경을 만듭니다. 시스템 전역 Python과 충돌을 방지합니다.
-
-### 1-3. 가상환경 활성화
-```bash
-# macOS/Linux
-source .venv/bin/activate
-
-# Windows (Command Prompt)
-.venv\Scripts\activate
-
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-```
-> 💡 **왜 하는가?**: 가상환경을 활성화해야 이후 설치하는 패키지들이 이 프로젝트 전용으로 설치됩니다.
->
-> ✅ **확인**: 터미널 앞에 `(.venv)`가 표시되면 성공입니다.
-
-### 1-4. Python 의존성 패키지 설치
-```bash
-pip install -r requirements.txt
-```
-> 💡 **왜 하는가?**: FastAPI, SQLAlchemy 등 백엔드 실행에 필요한 모든 라이브러리를 설치합니다.
->
-> ⏱️ **소요시간**: 약 1-3분 (인터넷 속도에 따라 다름)
-
-### 1-5. 환경 변수 파일 생성
-```bash
-# .env.example을 복사해서 .env 파일 생성
-cp .env.example .env
-```
-> 💡 **왜 하는가?**: 데이터베이스 접속 정보, 보안 키 등 환경별 설정을 담는 파일입니다.
-
-### 1-6. 환경 변수 파일 수정 (중요!)
-텍스트 에디터로 `.env` 파일을 열어 다음 내용을 확인/수정합니다:
-
-
-```bash
-# ====================
-# Database Settings (Supabase)
-# ====================
-POSTGRES_HOST=db.cafquolsrqkhpqejgojd.supabase.co
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=chl0795chl0795!
-POSTGRES_DB=postgres
-
-# SQLAlchemy 연결 URL (asyncpg 사용)
-DATABASE_URL=postgresql+asyncpg://postgres:chl0795chl0795%21@db.cafquolsrqkhpqejgojd.supabase.co:5432/postgres
-
-# ====================
-# Security Settings
-# ====================
-# 터미널에서 python -c "import secrets; print(secrets.token_hex(32))" 실행 결과 입력
-SECRET_KEY=your-generated-random-string
-
-```
-
-### 1-7. Supabase 테이블 생성 (SQL Editor 사용)
-
-로컬에 DB를 설치할 필요 없이 Supabase 대시보드에서 직접 실행합니다.
-
-1. **Supabase Dashboard**에 접속합니다.
-2. 왼쪽 메뉴에서 **SQL Editor** 아이콘을 클릭합니다.
-3. **New Query**를 선택하고, 프로젝트의 테이블 생성 SQL(예: `schema.sql`) 내용을 붙여넣습니다.
-4. 오른쪽 하단의 **Run** 버튼을 클릭하여 테이블을 생성합니다.
-
-### 1-8. 백엔드 서버 실행
-
-```bash
-python -m server.main
-
-```
-
----
-
-## 2️⃣ 프론트엔드 (React) 실행하기
-
-백엔드를 실행한 터미널은 그대로 두고, **새로운 터미널 창을 열어서** 진행합니다.
-
-### 2-1. 프론트엔드 디렉토리로 이동
-```bash
-cd ai-worker-project/client
-```
-> 💡 **왜 하는가?**: 프론트엔드 코드와 설정 파일이 있는 `client` 폴더로 이동합니다.
-
-### 2-2. Node.js 의존성 패키지 설치
-```bash
-npm install
-```
-> 💡 **왜 하는가?**: React, Vite, TypeScript 등 프론트엔드 실행에 필요한 모든 JavaScript 라이브러리를 설치합니다.
->
-> ⏱️ **소요시간**: 약 1-5분 (인터넷 속도에 따라 다름)
->
-> ✅ **확인**: `node_modules` 폴더가 생성되고, 수백 개의 패키지가 설치됩니다.
-
-### 2-3. 프론트엔드 개발 서버 실행
-```bash
-npm run dev
-```
-> 💡 **왜 하는가?**: Vite 개발 서버를 시작합니다. 코드 변경 시 자동으로 브라우저를 새로고침합니다.
->
-> ✅ **성공 확인**:
-> - 터미널에 `Local: http://localhost:5173/` 같은 메시지 표시
-> - 웹 브라우저에서 http://localhost:5173 열기
-> - React 앱이 화면에 표시됨
-
-> ⚠️ **주의**: 이 터미널 창도 프론트엔드가 실행되는 동안 계속 열어두어야 합니다!
-
----
-
-## ✅ 실행 확인
-
-모든 것이 정상적으로 실행되면:
-
-1. **백엔드 API**: http://localhost:8000
-   - API 문서: http://localhost:8000/docs
-
-2. **프론트엔드 웹**: http://localhost:5173
-
-두 개의 터미널 창이 열려 있어야 합니다:
-- 터미널 1: 백엔드 서버 실행 중 (`python -m server.main`)
-- 터미널 2: 프론트엔드 개발 서버 실행 중 (`npm run dev`)
-
----
-
-## 🛑 실행 중지하기
-
-각 터미널에서 `Ctrl + C`를 눌러 서버를 중지할 수 있습니다.
-
-다시 실행하려면:
-- 백엔드: `python -m server.main` (프로젝트 루트에서)
-- 프론트엔드: `npm run dev` (client 폴더에서)
-
----
-
-## ❓ 문제 해결
-
-### 백엔드 실행 시 에러
-- `ModuleNotFoundError`: 가상환경이 활성화되었는지 확인 (`(.venv)` 표시 확인)
-- `Database connection error`: PostgreSQL이 실행 중인지, `.env` 설정이 올바른지 확인
-- `Port 8000 already in use`: 다른 프로그램이 8000 포트를 사용 중입니다. 종료하거나 다른 포트 사용
-
-### 프론트엔드 실행 시 에러
-- `command not found: npm`: Node.js가 설치되지 않았습니다
-- `Port 5173 already in use`: 다른 Vite 서버가 실행 중입니다. 종료 후 재시도
-- `Module not found`: `npm install`을 다시 실행해보세요
-
-## 새 도메인 추가하기
-
-### 1. 도메인 디렉토리 생성
-
-```bash
-mkdir -p server/app/domain/my_domain/{models,schemas,providers,calculators,formatters}
-```
-
-### 2. 각 컴포넌트 구현
+### 데이터 흐름 예시
 
 ```python
-# server/app/domain/my_domain/providers/__init__.py
-from server.app.shared.base import BaseProvider
+# 1. HTTP Request → Router
+@router.post("/analyze", response_model=SampleAnalysisResponse)
+async def analyze_data(request: SampleAnalysisRequest, db: AsyncSession = Depends(get_db)):
 
-class MyDataProvider(BaseProvider[MyInput, MyOutput]):
-    async def provide(self, input_data: MyInput) -> MyOutput:
-        # 데이터 조회 로직
-        pass
-
-# server/app/domain/my_domain/calculators/__init__.py
-from server.app.shared.base import BaseCalculator
-
-class MyCalculator(BaseCalculator[MyInput, MyOutput]):
-    async def calculate(self, input_data: MyInput) -> MyOutput:
-        # 계산 로직
-        pass
-
-# server/app/domain/my_domain/formatters/__init__.py
-from server.app.shared.base import BaseFormatter
-
-class MyFormatter(BaseFormatter[MyInput, MyOutput]):
-    async def format(self, input_data: MyInput) -> MyOutput:
-        # 포맷팅 로직
-        pass
-
-# server/app/domain/my_domain/service.py
-from server.app.shared.base import BaseService
-
-class MyDomainService(BaseService[MyRequest, MyResponse]):
-    async def execute(self, request: MyRequest) -> ServiceResult[MyResponse]:
-        # Provider, Calculator, Formatter 조율
-        pass
-```
-
-### 3. API 엔드포인트 추가
-
-```python
-# server/app/api/v1/endpoints/my_domain.py
-from fastapi import APIRouter
-
-router = APIRouter(prefix="/my-domain", tags=["my-domain"])
-
-@router.post("/action")
-async def my_action(...):
-    service = MyDomainService(db)
+    # 2. Router → Service
+    service = SampleDomainService(db=db)
     result = await service.execute(request)
+
+    # 3. Service 내부 흐름:
+    #    a) Provider: 데이터 조회
+    provider_output = await self.provider.provide(provider_input)
+
+    #    b) Calculator: 비즈니스 로직 실행
+    calc_output = await self.calculator.calculate(calc_input)
+
+    #    c) Formatter: 응답 포맷팅
+    formatted = await self.formatter.format(formatter_input)
+
+    # 4. Service → Router → HTTP Response
     return result.data
 ```
 
-### 4. 라우터 등록
+---
 
-```python
-# server/app/api/v1/router.py
-from server.app.api.v1.endpoints import my_domain
+## 🚀 빠른 시작
 
-api_router.include_router(my_domain.router)
-```
+### 사전 준비사항
 
-## 테스트
+- **Python 3.12+** ([다운로드](https://www.python.org/downloads/))
+- **Node.js 18+** ([다운로드](https://nodejs.org/))
+- **PostgreSQL** ([다운로드](https://www.postgresql.org/download/))
+
+### 1️⃣ 백엔드 실행
 
 ```bash
-# 전체 테스트 실행
+# 1. 프로젝트 루트로 이동
+cd ai-worker-project
+
+# 2. Python 가상환경 생성 & 활성화
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 3. 의존성 설치
+pip install -r requirements.txt
+
+# 4. 환경 변수 설정
+cp .env.example .env
+# .env 파일을 열어 데이터베이스 연결 정보 수정
+
+# 5. 데이터베이스 초기화 (Supabase SQL Editor 사용 또는 로컬 PostgreSQL)
+# Supabase: SQL Editor에서 schema.sql 실행
+# 로컬: psql -U postgres -d ai_analysis_db -f schema.sql
+
+# 6. 백엔드 서버 실행
+python -m server.main
+# → http://localhost:8000 에서 실행
+# → http://localhost:8000/docs 에서 API 문서 확인
+```
+
+### 2️⃣ 프론트엔드 실행
+
+```bash
+# 1. 새 터미널에서 프론트엔드 디렉토리로 이동
+cd client
+
+# 2. 의존성 설치
+npm install
+
+# 3. 개발 서버 실행
+npm run dev
+# → http://localhost:3000 에서 실행 (Vite가 자동으로 API 프록시)
+```
+
+### ✅ 실행 확인
+
+- **백엔드 API**: http://localhost:8000
+- **API 문서 (Swagger)**: http://localhost:8000/docs
+- **프론트엔드**: http://localhost:3000
+
+---
+
+## 🎯 도메인 플러그인 추가하기
+
+새로운 비즈니스 기능을 추가하는 방법입니다. 예시: `payment` 도메인 추가
+
+### 빠른 가이드
+
+```bash
+# 1. 도메인 디렉토리 생성
+mkdir -p server/app/domain/payment/{models,schemas,providers,calculators,formatters}
+
+# 2. 각 파일 생성 (__init__.py 포함)
+touch server/app/domain/payment/__init__.py
+touch server/app/domain/payment/service.py
+touch server/app/domain/payment/models/__init__.py
+touch server/app/domain/payment/schemas/__init__.py
+touch server/app/domain/payment/providers/__init__.py
+touch server/app/domain/payment/calculators/__init__.py
+touch server/app/domain/payment/formatters/__init__.py
+
+# 3. API 엔드포인트 생성
+touch server/app/api/v1/endpoints/payment.py
+
+# 4. 프론트엔드 도메인 생성
+mkdir -p client/src/domains/payment/{components,pages}
+touch client/src/domains/payment/api.ts
+touch client/src/domains/payment/store.ts
+touch client/src/domains/payment/types.ts
+```
+
+### 구현 순서 (체크리스트)
+
+자세한 내용은 [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)를 참조하세요.
+
+#### 백엔드
+
+- [ ] **1단계**: `models/__init__.py` - SQLAlchemy 모델 정의
+- [ ] **2단계**: `schemas/__init__.py` - Pydantic Request/Response 스키마
+- [ ] **3단계**: `providers/__init__.py` - 데이터 조회 로직 (BaseProvider 상속)
+- [ ] **4단계**: `calculators/__init__.py` - 비즈니스 로직 (BaseCalculator 상속)
+- [ ] **5단계**: `formatters/__init__.py` - 응답 포맷팅 (BaseFormatter 상속)
+- [ ] **6단계**: `service.py` - Service 클래스 (BaseService 상속)
+- [ ] **7단계**: `api/v1/endpoints/payment.py` - FastAPI 라우터
+- [ ] **8단계**: `api/v1/router.py`에 라우터 등록
+
+#### 프론트엔드
+
+- [ ] **1단계**: `types.ts` - TypeScript 타입 정의
+- [ ] **2단계**: `api.ts` - API 호출 함수 (ApiClient 사용)
+- [ ] **3단계**: `store.ts` - Zustand 상태 관리
+- [ ] **4단계**: `components/` - UI 컴포넌트 작성
+- [ ] **5단계**: `pages/` - 페이지 컴포넌트 작성
+- [ ] **6단계**: 라우터에 페이지 등록
+
+---
+
+## 📚 개발 가이드
+
+### 코드 품질 도구
+
+```bash
+# 코드 포맷팅 (자동)
+black server/
+isort server/
+
+# 린팅 (문제 검사)
+ruff check server/
+
+# 타입 체크
+mypy server/
+
+# 프론트엔드 린팅
+cd client
+npm run lint
+```
+
+### 테스트 실행
+
+```bash
+# 전체 테스트
 pytest
 
 # 커버리지 포함
 pytest --cov=server --cov-report=html
 
-# 특정 테스트만 실행
+# 특정 테스트만
 pytest tests/unit/
 pytest tests/integration/
 
@@ -404,35 +391,74 @@ pytest -m unit
 pytest -m integration
 ```
 
-## 코드 품질
+### 데이터베이스 마이그레이션
 
 ```bash
-# 코드 포맷팅
-black server/
-isort server/
+# Alembic 초기화 (최초 1회)
+alembic init alembic
 
-# 린팅
-ruff check server/
+# 마이그레이션 생성
+alembic revision --autogenerate -m "Add payment table"
 
-# 타입 체크
-mypy server/
+# 마이그레이션 적용
+alembic upgrade head
+
+# 롤백
+alembic downgrade -1
 ```
 
-## 배포
+---
 
-TODO: 배포 가이드 작성
-- Docker 이미지 빌드
-- 환경별 설정
-- CI/CD 파이프라인
+## 📖 문서
 
-## 라이센스
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: 상세 아키텍처 가이드 (디자인 패턴, 예외 처리, 테스트 전략)
+- **[server/README.md](./server/README.md)**: 백엔드 개발 가이드 (Layered Architecture, 의존성 주입, DB 마이그레이션)
+- **[client/README.md](./client/README.md)**: 프론트엔드 개발 가이드 (React 19, Zustand, Tailwind 4, API 통신)
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)**: 개발 가이드 (도메인 추가 상세 체크리스트, 코드 리뷰 기준)
+- **[.cursorrules](./.cursorrules)**: Cursor/Claude AI 에이전트 코딩 규칙
 
-MIT
+---
 
-## 기여
+## 🛑 문제 해결
 
-이슈와 PR을 환영합니다!
+### 백엔드 에러
 
-## 문의
+| 에러 | 원인 | 해결 방법 |
+|------|------|----------|
+| `ModuleNotFoundError` | 가상환경 미활성화 | `source .venv/bin/activate` 실행 |
+| `Database connection error` | PostgreSQL 미실행 또는 .env 설정 오류 | PostgreSQL 서비스 확인, .env 검증 |
+| `Port 8000 already in use` | 포트 충돌 | 기존 프로세스 종료 또는 .env에서 포트 변경 |
 
-문제가 있거나 질문이 있으시면 이슈를 등록해주세요.
+### 프론트엔드 에러
+
+| 에러 | 원인 | 해결 방법 |
+|------|------|----------|
+| `command not found: npm` | Node.js 미설치 | Node.js 설치 |
+| `Module not found` | 의존성 미설치 | `npm install` 재실행 |
+| `Port 3000 already in use` | 포트 충돌 | 기존 Vite 서버 종료 |
+
+---
+
+## 🤝 기여
+
+이슈와 PR을 환영합니다! 기여 전 다음을 확인하세요:
+
+1. `.cursorrules` 파일의 코딩 규칙 준수
+2. 모든 테스트 통과 (`pytest` + `npm run lint`)
+3. 코드 포맷팅 적용 (`black`, `isort`, `prettier`)
+
+---
+
+## 📄 라이센스
+
+MIT License
+
+---
+
+## 📧 문의
+
+문제가 있거나 질문이 있으시면 GitHub Issues를 등록해주세요.
+
+---
+
+**Happy Vibe Coding! 🎉**
