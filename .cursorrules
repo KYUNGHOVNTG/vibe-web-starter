@@ -1,0 +1,481 @@
+# Cursor Rules for AI Worker Project
+
+이 프로젝트는 **"유지보수성 최우선" 및 "모듈화"**를 핵심 가치로 하는 FastAPI + React 19 풀스택 웹 애플리케이션입니다.
+Cursor나 Claude AI 에이전트와 협업할 때 다음 규칙을 **엄격히** 준수해야 합니다.
+
+---
+
+## 🚫 절대 금지 사항 (NEVER DO)
+
+1. **폴더 구조 파괴 금지**: 기존의 계층화된 폴더 구조(`core/`, `shared/`, `domain/`, `domains/`)를 절대 변경하지 마세요
+2. **절차지향 함수 금지**: 백엔드 비즈니스 로직은 반드시 클래스 기반으로 작성
+3. **직접 DB 접근 금지**: Service 레이어에서 직접 DB 쿼리 작성 금지 (Provider로 위임)
+4. **직접 axios 호출 금지**: 프론트엔드에서 `axios`를 직접 import 금지 (apiClient 사용)
+5. **도메인 간 의존성 금지**: 한 도메인이 다른 도메인의 내부 구현에 의존하지 않도록
+6. **인라인 스타일 금지**: React 컴포넌트에서 `style={{ ... }}` 사용 금지 (Tailwind CSS 사용)
+7. **타입 힌트 생략 금지**: Python, TypeScript 모두 명시적 타입 선언 필수
+
+---
+
+## 📐 General Principles
+
+### 아키텍처 우선
+
+- **변경 전 확인**: 코드를 수정하기 전 항상 변경 사항이 아키텍처에 미치는 영향을 설명하고 사용자의 확인을 받으세요
+- **레이어드 아키텍처 준수**: Router → Service → Provider/Calculator/Formatter 흐름을 절대 위반하지 마세요
+- **단일 책임 원칙**: 각 클래스/컴포넌트는 하나의 역할만 담당해야 합니다
+
+### 타입 안전성
+
+- **Python**: 모든 함수/메서드에 타입 힌트 명시 (`def foo(x: int) -> str:`)
+- **TypeScript**: `any` 타입 사용 금지 (불가피한 경우 `unknown` 사용 후 타입 가드)
+- **Pydantic**: Request/Response DTO는 반드시 Pydantic BaseModel 상속
+- **Generic Types**: BaseService, BaseProvider 등은 제네릭 타입 파라미터 명시
+
+---
+
+## 🐍 Backend (Python) Rules
+
+### 1. 클래스 기반 설계
+
+```python
+# ❌ 금지: 절차지향 함수
+async def process_payment(db: AsyncSession, request: PaymentRequest):
+    user = await db.execute(select(User).where(User.id == request.user_id))
+    # ... 비즈니스 로직 ...
+    return PaymentResponse(...)
+
+# ✅ 권장: 클래스 기반 Service
+class PaymentService(BaseService[PaymentRequest, PaymentResponse]):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.provider = PaymentDataProvider(db)
+        self.calculator = PaymentCalculator()
+        self.formatter = PaymentResponseFormatter()
+
+    async def execute(self, request: PaymentRequest) -> ServiceResult[PaymentResponse]:
+        # Provider → Calculator → Formatter 흐름
+        ...
+```
+
+### 2. Pydantic v2 & SQLAlchemy 2.0 비동기 패턴
+
+```python
+# Pydantic v2 스키마
+from pydantic import BaseModel, Field, ConfigDict
+
+class UserCreate(BaseModel):
+    email: str = Field(..., description="사용자 이메일")
+    username: str = Field(..., min_length=3, max_length=100)
+
+    model_config = ConfigDict(from_attributes=True)
+
+# SQLAlchemy 2.0 비동기 쿼리
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+async def get_user(db: AsyncSession, user_id: int) -> User | None:
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+```
+
+### 3. 예외 처리
+
+```python
+# ❌ 금지: 일반 Exception 사용
+raise Exception("사용자를 찾을 수 없습니다")
+
+# ✅ 권장: 커스텀 예외 사용
+from server.app.shared.exceptions import NotFoundException
+
+raise NotFoundException(
+    message="사용자를 찾을 수 없습니다",
+    details={"user_id": user_id}
+)
+```
+
+### 4. 레이어별 책임
+
+- **Router**: HTTP 요청/응답만 처리, 비즈니스 로직 금지
+- **Service**: Provider/Calculator/Formatter 조율, 트랜잭션 관리
+- **Provider**: 데이터 조회 (DB, API, 파일), Side Effect 허용
+- **Calculator**: 순수 계산 로직, Side Effect 절대 금지 (DB 접근 불가)
+- **Formatter**: 내부 데이터 → API 응답 변환
+
+### 5. 파일 배치 규칙
+
+```
+server/app/domain/{domain_name}/
+├── __init__.py
+├── service.py              # 도메인 서비스 (BaseService 상속)
+├── models/                 # SQLAlchemy 모델
+│   └── __init__.py
+├── schemas/                # Pydantic 스키마
+│   └── __init__.py
+├── providers/              # 데이터 조회
+│   └── __init__.py
+├── calculators/            # 비즈니스 로직
+│   └── __init__.py
+└── formatters/             # 응답 포맷팅
+    └── __init__.py
+```
+
+---
+
+## ⚛️ Frontend (React) Rules
+
+### 1. 컴포넌트 분리 원칙
+
+```tsx
+// ❌ 금지: 모놀리식 컴포넌트
+export const UserDashboard: React.FC = () => {
+  // 100+ 줄의 복잡한 로직과 UI
+  return <div>...</div>;
+};
+
+// ✅ 권장: 기능 단위 분리
+export const UserDashboard: React.FC = () => {
+  return (
+    <MainLayout>
+      <UserProfile />      {/* 프로필 표시 */}
+      <UserStats />        {/* 통계 표시 */}
+      <UserActivityList /> {/* 활동 목록 */}
+    </MainLayout>
+  );
+};
+```
+
+### 2. Tailwind CSS 4 사용 규칙
+
+```tsx
+// ❌ 금지: 인라인 스타일
+<div style={{ display: 'flex', padding: '16px', backgroundColor: '#f3f4f6' }}>
+  ...
+</div>
+
+// ✅ 권장: Tailwind 유틸리티 클래스
+<div className="flex p-4 bg-gray-100">
+  ...
+</div>
+
+// ✅ 권장: 조건부 클래스 (cn 유틸리티 사용)
+import { cn } from '@/utils/cn';
+
+<button
+  className={cn(
+    'px-4 py-2 rounded-lg transition-colors',
+    variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
+    variant === 'secondary' && 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+    disabled && 'opacity-50 cursor-not-allowed'
+  )}
+>
+  {children}
+</button>
+```
+
+### 3. API 통신 규칙
+
+```tsx
+// ❌ 금지: 직접 axios 사용
+import axios from 'axios';
+
+const fetchUsers = async () => {
+  const response = await axios.get('http://localhost:8000/api/users');
+  return response.data;
+};
+
+// ✅ 권장: apiClient 싱글톤 사용
+import { apiClient } from '@/core/api/client';
+
+export async function fetchUsers(): Promise<User[]> {
+  return apiClient.get<User[]>('/v1/users');
+}
+```
+
+### 4. 상태 관리 규칙
+
+```tsx
+// 전역 상태: core/store/ (Auth, Theme 등)
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  login: (user, token) => set({ user, token, isAuthenticated: true }),
+  logout: () => set({ user: null, token: null, isAuthenticated: false }),
+}));
+
+// 도메인 상태: domains/{domain}/store.ts
+export const useUserStore = create<UserState>((set) => ({
+  users: [],
+  loading: false,
+  fetchUsers: async () => {
+    set({ loading: true });
+    const users = await api.fetchUsers();
+    set({ users, loading: false });
+  },
+}));
+```
+
+### 5. 컴포넌트 파일 배치
+
+```
+client/src/
+├── core/                   # 공통 인프라
+│   ├── api/                # API 클라이언트
+│   ├── hooks/              # 커스텀 훅
+│   ├── layout/             # 레이아웃 컴포넌트
+│   ├── store/              # 전역 상태
+│   └── ui/                 # 재사용 UI 컴포넌트
+│
+└── domains/                # 도메인별 기능
+    └── {domain_name}/
+        ├── api.ts          # API 호출 함수
+        ├── store.ts        # Zustand 스토어
+        ├── types.ts        # TypeScript 타입
+        ├── components/     # 도메인 컴포넌트
+        ├── pages/          # 도메인 페이지
+        └── index.ts        # 내보내기
+```
+
+### 6. 모던 핀테크 디자인 바이브
+
+- **색상**: 청록색(Teal), 남색(Navy), 흰색, 밝은 회색 계열 중심
+- **타이포그래피**: 깔끔한 sans-serif (Inter, Pretendard), 16px 기본 크기
+- **간격**: 일관된 패딩/마진 (4px 단위: p-2, p-4, p-6, p-8)
+- **그림자**: 은은한 그림자 (shadow-sm, shadow-md)
+- **둥근 모서리**: 중간 정도 (rounded-lg, rounded-xl)
+- **애니메이션**: 부드럽고 빠른 전환 (transition-colors duration-200)
+
+---
+
+## 🤝 Collaboration Guidelines
+
+### 코드 변경 전 확인사항
+
+1. **영향 범위 분석**: 변경이 다른 레이어/도메인에 영향을 주는지 확인
+2. **사용자 확인 요청**: 아키텍처 변경이 필요한 경우 사용자에게 설명하고 승인 요청
+3. **테스트 영향 평가**: 기존 테스트가 깨질 가능성 확인
+
+### 제안 형식
+
+```
+### 제안: {변경 내용 요약}
+
+**현재 상황:**
+- {현재 구조 설명}
+
+**제안 사항:**
+- {변경하려는 내용}
+
+**영향 범위:**
+- {영향받는 파일/모듈 목록}
+
+**장점:**
+- {개선 사항}
+
+**단점/리스크:**
+- {잠재적 문제점}
+
+**사용자 확인 필요 여부:** 예/아니오
+```
+
+---
+
+## 📝 Code Style Guidelines
+
+### Python (Backend)
+
+```python
+# 1. Import 순서 (isort 준수)
+import os                           # 표준 라이브러리
+from typing import Optional         # 표준 라이브러리 (typing)
+
+from fastapi import APIRouter       # 외부 라이브러리
+from pydantic import BaseModel      # 외부 라이브러리
+from sqlalchemy import select       # 외부 라이브러리
+
+from server.app.core.database import AsyncSession       # 내부 모듈 (core)
+from server.app.shared.base import BaseService          # 내부 모듈 (shared)
+from server.app.domain.user.models import User          # 내부 모듈 (domain)
+
+# 2. 클래스 정의
+class UserService(BaseService[UserRequest, UserResponse]):
+    """사용자 관리 서비스
+
+    사용자 생성, 조회, 수정, 삭제 기능을 제공합니다.
+    """
+
+    def __init__(self, db: AsyncSession):
+        """
+        Args:
+            db: 데이터베이스 세션
+        """
+        super().__init__()
+        self.db = db
+        self.provider = UserDataProvider(db)
+
+    async def execute(self, request: UserRequest) -> ServiceResult[UserResponse]:
+        """
+        사용자 생성 실행
+
+        Args:
+            request: 사용자 생성 요청
+
+        Returns:
+            ServiceResult: 생성된 사용자 정보
+
+        Raises:
+            ValidationException: 입력 검증 실패
+            BusinessLogicException: 비즈니스 규칙 위반
+        """
+        # 구현...
+
+# 3. 명명 규칙
+- 클래스: PascalCase (UserService, PaymentProvider)
+- 함수/메서드: snake_case (get_user, process_payment)
+- 상수: UPPER_SNAKE_CASE (MAX_RETRY_COUNT)
+- 파일명: snake_case (user_service.py, payment_provider.py)
+```
+
+### TypeScript (Frontend)
+
+```typescript
+// 1. Import 순서
+import React, { useEffect, useState } from 'react';           // React
+import { useNavigate } from 'react-router-dom';              // 외부 라이브러리
+
+import { Button, Card } from '@/core/ui';                    // core
+import { useAuthStore } from '@/core/store';                 // core/store
+import { useUserStore } from '../store';                     // 도메인 상대 경로
+import { fetchUsers } from '../api';                         // 도메인 상대 경로
+import type { User } from '../types';                        // 타입은 type 키워드로
+
+// 2. 컴포넌트 정의
+interface UserListProps {
+  /** 사용자 목록 */
+  users: User[];
+  /** 선택된 사용자 ID */
+  selectedUserId?: number;
+  /** 사용자 선택 시 콜백 */
+  onSelect?: (user: User) => void;
+}
+
+/**
+ * 사용자 목록 컴포넌트
+ *
+ * 사용자 목록을 표시하고 선택 기능을 제공합니다.
+ */
+export const UserList: React.FC<UserListProps> = ({
+  users,
+  selectedUserId,
+  onSelect,
+}) => {
+  // 구현...
+};
+
+// 3. 명명 규칙
+- 컴포넌트: PascalCase (UserList, PaymentForm)
+- 함수/변수: camelCase (fetchUsers, isLoading)
+- 타입/인터페이스: PascalCase (User, UserListProps)
+- 상수: UPPER_SNAKE_CASE (API_BASE_URL)
+- 파일명 (컴포넌트): PascalCase (UserList.tsx)
+- 파일명 (유틸): camelCase (api.ts, store.ts)
+```
+
+---
+
+## 🧪 Testing Guidelines
+
+### Backend 테스트
+
+```python
+# tests/unit/test_payment_calculator.py
+import pytest
+from decimal import Decimal
+
+from server.app.domain.payment.calculators import PaymentCalculator
+
+@pytest.mark.asyncio
+async def test_calculate_fee_credit_card():
+    """신용카드 수수료 계산 테스트"""
+    calculator = PaymentCalculator()
+
+    result = await calculator.calculate({
+        "amount": Decimal("100000"),
+        "payment_type": "credit_card",
+        "user_tier": "silver"
+    })
+
+    assert result["fee"] == Decimal("3000")  # 3%
+    assert result["final_amount"] == Decimal("103000")
+```
+
+### Frontend 테스트
+
+```typescript
+// domains/user/components/UserList.test.tsx
+import { render, screen } from '@testing-library/react';
+import { UserList } from './UserList';
+
+describe('UserList', () => {
+  it('renders user list correctly', () => {
+    const users = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+
+    render(<UserList users={users} />);
+
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+  });
+});
+```
+
+---
+
+## 🔍 Code Review Checklist
+
+### 모든 PR은 다음을 확인하세요:
+
+#### 아키텍처
+- [ ] 계층화된 폴더 구조 유지
+- [ ] 레이어별 책임 분리 준수
+- [ ] 도메인 간 의존성 최소화
+
+#### 코드 품질
+- [ ] 타입 힌트 명시 (Python, TypeScript)
+- [ ] Docstring/JSDoc 작성
+- [ ] 에러 핸들링 적절
+- [ ] 테스트 작성 (최소 주요 로직)
+
+#### 스타일
+- [ ] black, isort (Python) 실행
+- [ ] prettier, eslint (TypeScript) 실행
+- [ ] Tailwind CSS 사용 (인라인 스타일 금지)
+
+#### 문서
+- [ ] README 업데이트 (필요시)
+- [ ] API 문서화 (FastAPI 자동 문서)
+- [ ] 주요 변경사항 CHANGELOG 작성
+
+---
+
+## 📚 추가 참고 자료
+
+- **[README.md](./README.md)**: 프로젝트 개요 및 빠른 시작
+- **[server/README.md](./server/README.md)**: 백엔드 상세 가이드
+- **[client/README.md](./client/README.md)**: 프론트엔드 상세 가이드
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: 상세 아키텍처 문서
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)**: 개발 가이드 및 체크리스트
+
+---
+
+## 💬 질문이 있을 때
+
+1. **아키텍처 변경이 필요한가요?** → 사용자에게 제안 형식으로 설명하고 승인 요청
+2. **어디에 코드를 배치해야 하나요?** → 위 폴더 구조 섹션 참조
+3. **어떤 패턴을 사용해야 하나요?** → README 문서들의 예시 코드 참조
+4. **테스트는 어떻게 작성하나요?** → Testing Guidelines 섹션 참조
+
+---
+
+**기억하세요: 이 규칙은 "유지보수성"과 "모듈화"를 위한 것입니다. 규칙을 따르면 협업이 쉬워지고 버그가 줄어듭니다! 🚀**
