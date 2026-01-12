@@ -206,49 +206,43 @@ cp .env.example .env
 ### 1-6. 환경 변수 파일 수정 (중요!)
 텍스트 에디터로 `.env` 파일을 열어 다음 내용을 확인/수정합니다:
 
+
 ```bash
-# 데이터베이스 설정 (PostgreSQL이 로컬에서 실행 중이어야 함)
-POSTGRES_HOST=localhost
+# ====================
+# Database Settings (Supabase)
+# ====================
+POSTGRES_HOST=db.cafquolsrqkhpqejgojd.supabase.co
 POSTGRES_PORT=5432
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres        # 본인의 PostgreSQL 비밀번호로 변경
-POSTGRES_DB=ai_analysis_db        # 사용할 데이터베이스 이름
+POSTGRES_PASSWORD=chl0795chl0795!
+POSTGRES_DB=postgres
 
-# 보안 키 (프로덕션에서는 반드시 변경!)
-SECRET_KEY=your-secret-key-here-change-in-production
+# SQLAlchemy 연결 URL (asyncpg 사용)
+DATABASE_URL=postgresql+asyncpg://postgres:chl0795chl0795%21@db.cafquolsrqkhpqejgojd.supabase.co:5432/postgres
+
+# ====================
+# Security Settings
+# ====================
+# 터미널에서 python -c "import secrets; print(secrets.token_hex(32))" 실행 결과 입력
+SECRET_KEY=your-generated-random-string
+
 ```
 
-> 💡 **왜 하는가?**: 백엔드가 데이터베이스에 접속하기 위한 정보를 설정합니다.
+### 1-7. Supabase 테이블 생성 (SQL Editor 사용)
 
-### 1-7. PostgreSQL 데이터베이스 생성
-```bash
-# PostgreSQL에 접속
-psql -U postgres
+로컬에 DB를 설치할 필요 없이 Supabase 대시보드에서 직접 실행합니다.
 
-# 데이터베이스 생성 (PostgreSQL 프롬프트에서 실행)
-CREATE DATABASE ai_analysis_db;
-
-# 확인 후 종료
-\l
-\q
-```
-> 💡 **왜 하는가?**: 백엔드가 데이터를 저장할 데이터베이스를 미리 생성합니다.
->
-> ⚠️ **에러 발생 시**: PostgreSQL 서비스가 실행 중인지 확인하세요.
+1. **Supabase Dashboard**에 접속합니다.
+2. 왼쪽 메뉴에서 **SQL Editor** 아이콘을 클릭합니다.
+3. **New Query**를 선택하고, 프로젝트의 테이블 생성 SQL(예: `schema.sql`) 내용을 붙여넣습니다.
+4. 오른쪽 하단의 **Run** 버튼을 클릭하여 테이블을 생성합니다.
 
 ### 1-8. 백엔드 서버 실행
-```bash
-# 프로젝트 루트 디렉토리에서 실행
-python -m server.main
-```
-> 💡 **왜 하는가?**: FastAPI 백엔드 서버를 시작합니다.
->
-> ✅ **성공 확인**:
-> - 터미널에 `Application startup complete` 메시지 표시
-> - http://localhost:8000 에서 서버 실행 중
-> - http://localhost:8000/docs 에서 API 문서 확인 가능
 
-> ⚠️ **주의**: 이 터미널 창은 백엔드가 실행되는 동안 계속 열어두어야 합니다!
+```bash
+python -m server.main
+
+```
 
 ---
 
