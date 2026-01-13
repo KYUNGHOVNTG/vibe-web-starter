@@ -18,10 +18,23 @@ from server.app.examples.sample_domain.schemas import (
     SampleProviderInput,
     SampleCalculatorInput,
     SampleFormatterInput,
+    SimpleProviderInput,
+    SimpleCalculatorInput,
+    SimpleFormatterInput,
+    SampleListResponse,
 )
-from server.app.examples.sample_domain.providers import SampleDataProvider
-from server.app.examples.sample_domain.calculators import SampleAnalysisCalculator
-from server.app.examples.sample_domain.formatters import SampleResponseFormatter
+from server.app.examples.sample_domain.providers import (
+    SampleDataProvider,
+    SimpleMockDataProvider,
+)
+from server.app.examples.sample_domain.calculators import (
+    SampleAnalysisCalculator,
+    SimpleMockCalculator,
+)
+from server.app.examples.sample_domain.formatters import (
+    SampleResponseFormatter,
+    SimpleMockFormatter,
+)
 
 
 class SampleDomainService(BaseService[SampleAnalysisRequest, SampleAnalysisResponse]):
@@ -352,5 +365,182 @@ class SampleDomainService(BaseService[SampleAnalysisRequest, SampleAnalysisRespo
             metadata={
                 "error_type": type(error).__name__,
                 "data_id": request.data_id,
+            }
+        )
+
+
+# ====================
+# Simple GET Service (교과서 예제)
+# ====================
+
+
+class SimpleGetService(BaseService[None, SampleListResponse]):
+    """
+    간단한 GET 서비스
+
+    GET /api/v1/sample 엔드포인트를 위한 교과서 예제입니다.
+    Router → Service → Provider → Calculator → Formatter 흐름을 보여줍니다.
+
+    이 서비스는 다음을 보여줍니다:
+        1. BaseService 상속 및 템플릿 메서드 패턴
+        2. Provider, Calculator, Formatter 조합
+        3. 각 레이어의 책임 분리
+        4. 에러 핸들링
+        5. 로깅 포인트
+
+    사용 예시:
+        # FastAPI 엔드포인트에서
+        service = SimpleGetService(db)
+        result = await service.execute(None)
+
+        if result.success:
+            return result.data
+        else:
+            raise HTTPException(status_code=500, detail=result.error)
+    """
+
+    def __init__(self, db: AsyncSession):
+        """
+        Args:
+            db: 데이터베이스 세션 (이 예제에서는 사용하지 않음)
+        """
+        super().__init__(db)
+
+        # 의존성 주입: Provider, Calculator, Formatter 인스턴스 생성
+        self.provider = SimpleMockDataProvider(db)
+        self.calculator = SimpleMockCalculator()
+        self.formatter = SimpleMockFormatter()
+
+    async def execute(
+        self,
+        request: None,
+        user_id: Optional[int] = None,
+        **kwargs
+    ) -> ServiceResult[SampleListResponse]:
+        """
+        GET 요청을 실행합니다.
+
+        Args:
+            request: None (GET 요청이므로 request body 없음)
+            user_id: 요청한 사용자 ID (선택)
+            **kwargs: 추가 컨텍스트
+
+        Returns:
+            ServiceResult[SampleListResponse]: 실행 결과
+
+        Flow:
+            1. Provider: Mock 데이터 생성
+            2. Calculator: 데이터 필터링 및 가공
+            3. Formatter: API 응답 형식으로 변환
+        """
+        try:
+            # 1. Provider: 데이터 조회 (여기서는 mock 데이터)
+            provider_input = SimpleProviderInput()
+            provider_output = await self.provider.provide(provider_input)
+
+            # 2. Calculator: 데이터 가공
+            calculator_input = SimpleCalculatorInput(items=provider_output.items)
+            calculator_output = await self.calculator.calculate(calculator_input)
+
+            # 3. Formatter: API 응답 형식으로 변환
+            formatter_input = SimpleFormatterInput(
+                processed_items=calculator_output.processed_items,
+                total_count=calculator_output.total_count
+            )
+            response = await self.formatter.format(formatter_input)
+
+            # 4. 성공 결과 반환
+            return ServiceResult.success(
+                response,
+                metadata={
+                    "total_count": calculator_output.total_count,
+                }
+            )
+
+        except Exception as error:
+            # 에러 처리
+            return await self.handle_error(error, request)
+
+    async def validate_request(self, request: None) -> None:
+        """
+        요청 검증
+
+        GET 요청이므로 검증할 것이 없습니다.
+        """
+        pass
+
+    async def check_permissions(
+        self,
+        request: None,
+        user_id: Optional[int] = None
+    ) -> None:
+        """
+        권한 확인
+
+        이 예제에서는 권한 확인이 필요 없습니다.
+        실제 구현 시 여기에 권한 로직을 추가할 수 있습니다.
+        """
+        pass
+
+    async def before_execute(self, request: None) -> None:
+        """
+        실행 전 훅
+
+        TODO: 필요한 전처리 로직 추가
+            - 로깅
+            - 캐시 확인
+            - 요청 변환
+        """
+        # 예시: 로깅
+        # logger.info("Starting SimpleGetService execution")
+        pass
+
+    async def after_execute(
+        self,
+        request: None,
+        result: ServiceResult[SampleListResponse]
+    ) -> None:
+        """
+        실행 후 훅
+
+        TODO: 필요한 후처리 로직 추가
+            - 로깅
+            - 캐시 업데이트
+            - 이벤트 발행
+        """
+        # 예시: 로깅
+        # if result.success:
+        #     logger.info(f"SimpleGetService completed successfully: {result.data.total_count} items")
+        # else:
+        #     logger.error(f"SimpleGetService failed: {result.error}")
+        pass
+
+    async def handle_error(
+        self,
+        error: Exception,
+        request: None
+    ) -> ServiceResult[SampleListResponse]:
+        """
+        에러 처리
+
+        Args:
+            error: 발생한 예외
+            request: 요청 데이터 (None)
+
+        Returns:
+            ServiceResult: 에러 결과
+        """
+        # 예시: 에러 로깅
+        # logger.error(
+        #     f"Error in SimpleGetService: {str(error)}",
+        #     exc_info=True
+        # )
+
+        error_message = f"샘플 데이터 조회 중 오류가 발생했습니다: {str(error)}"
+
+        return ServiceResult.fail(
+            error_message,
+            metadata={
+                "error_type": type(error).__name__,
             }
         )

@@ -14,6 +14,8 @@ from server.app.examples.sample_domain.models import SampleDataModel
 from server.app.examples.sample_domain.schemas import (
     SampleProviderInput,
     SampleProviderOutput,
+    SimpleProviderInput,
+    SimpleProviderOutput,
 )
 
 
@@ -193,3 +195,75 @@ class SampleAggregationProvider(BaseProvider[SampleProviderInput, dict]):
             "min_value": 10.0,
             "max_value": 95.0,
         }
+
+
+# ====================
+# Simple Mock Data Provider (교과서 예제)
+# ====================
+
+
+class SimpleMockDataProvider(BaseProvider[SimpleProviderInput, SimpleProviderOutput]):
+    """
+    간단한 Mock 데이터 제공자
+
+    GET /api/v1/sample 엔드포인트를 위한 교과서 예제입니다.
+    실제 비즈니스 로직 없이 고정된 mock 데이터를 반환합니다.
+
+    책임:
+        - Mock 데이터 생성
+        - 데이터 반환 (DB 조회 없음)
+
+    이 Provider는 다음을 보여줍니다:
+        - Provider의 기본 구조
+        - BaseProvider 상속 방법
+        - 입력/출력 DTO 사용법
+    """
+
+    def __init__(self, db: AsyncSession | None = None):
+        """
+        Mock Provider는 DB가 필요 없을 수도 있습니다.
+        하지만 인터페이스 일관성을 위해 받을 수 있습니다.
+        """
+        super().__init__(db)
+
+    async def provide(self, input_data: SimpleProviderInput) -> SimpleProviderOutput:
+        """
+        Mock 데이터를 제공합니다.
+
+        Args:
+            input_data: 입력 (현재는 사용하지 않음)
+
+        Returns:
+            SimpleProviderOutput: Mock 데이터 리스트
+
+        NOTE: 실제 구현에서는 DB 조회, API 호출, 파일 읽기 등을 수행합니다.
+        """
+        # Mock 데이터 생성
+        mock_items = [
+            {
+                "id": 1,
+                "name": "샘플 아이템 1",
+                "description": "첫 번째 샘플 데이터입니다",
+                "category": "example",
+                "status": "active",
+                "created_at": "2024-01-01T00:00:00Z"
+            },
+            {
+                "id": 2,
+                "name": "샘플 아이템 2",
+                "description": "두 번째 샘플 데이터입니다",
+                "category": "example",
+                "status": "active",
+                "created_at": "2024-01-02T00:00:00Z"
+            },
+            {
+                "id": 3,
+                "name": "샘플 아이템 3",
+                "description": "세 번째 샘플 데이터입니다",
+                "category": "demo",
+                "status": "inactive",
+                "created_at": "2024-01-03T00:00:00Z"
+            }
+        ]
+
+        return SimpleProviderOutput(items=mock_items)

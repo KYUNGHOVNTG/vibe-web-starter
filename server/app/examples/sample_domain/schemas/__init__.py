@@ -210,3 +210,100 @@ class SampleFormatterInput(BaseModel):
     analysis_type: str
     metrics: dict[str, float]
     insights: list[str]
+
+
+# ====================
+# Simple GET API Schemas (교과서 예제)
+# ====================
+
+
+class SampleItem(BaseModel):
+    """
+    샘플 아이템 스키마
+
+    GET /api/v1/sample 엔드포인트에서 반환하는 단일 아이템 구조입니다.
+    """
+    id: int = Field(..., description="아이템 ID")
+    name: str = Field(..., description="아이템 이름")
+    description: str = Field(..., description="아이템 설명")
+    category: str = Field(..., description="카테고리")
+    status: str = Field(..., description="상태")
+
+
+class SampleListResponse(BaseModel):
+    """
+    샘플 리스트 응답 스키마
+
+    GET /api/v1/sample 엔드포인트에서 반환하는 응답 구조입니다.
+    Router → Service → Provider → Formatter 흐름을 보여주는 교과서 예제입니다.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "items": [
+                    {
+                        "id": 1,
+                        "name": "샘플 아이템 1",
+                        "description": "첫 번째 샘플입니다",
+                        "category": "example",
+                        "status": "active"
+                    },
+                    {
+                        "id": 2,
+                        "name": "샘플 아이템 2",
+                        "description": "두 번째 샘플입니다",
+                        "category": "example",
+                        "status": "active"
+                    }
+                ],
+                "total_count": 2,
+                "message": "샘플 데이터를 성공적으로 조회했습니다"
+            }
+        }
+    )
+
+    items: list[SampleItem] = Field(
+        default_factory=list,
+        description="샘플 아이템 목록"
+    )
+
+    total_count: int = Field(
+        ...,
+        description="전체 아이템 개수"
+    )
+
+    message: str = Field(
+        ...,
+        description="응답 메시지"
+    )
+
+
+# Provider → Calculator → Formatter용 DTOs
+
+class SimpleProviderInput(BaseModel):
+    """Simple Provider 입력"""
+    # GET 요청이므로 입력 없음 (또는 query params)
+    pass
+
+
+class SimpleProviderOutput(BaseModel):
+    """Simple Provider 출력 - 원본 데이터"""
+    items: list[dict]  # Mock 데이터
+
+
+class SimpleCalculatorInput(BaseModel):
+    """Simple Calculator 입력"""
+    items: list[dict]
+
+
+class SimpleCalculatorOutput(BaseModel):
+    """Simple Calculator 출력 - 가공된 데이터"""
+    processed_items: list[dict]
+    total_count: int
+
+
+class SimpleFormatterInput(BaseModel):
+    """Simple Formatter 입력"""
+    processed_items: list[dict]
+    total_count: int

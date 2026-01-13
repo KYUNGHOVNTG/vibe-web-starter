@@ -15,8 +15,13 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from server.app.core.config import settings
 from server.app.core.database import DatabaseManager
 from server.app.core.routers import router as core_router
+from server.app.core.logging import setup_logging, get_logger
+from server.app.core.middleware import RequestIDMiddleware, ExternalLoggingMiddleware
 from server.app.api.v1.router import api_router
 from server.app.shared.exceptions import ApplicationException
+
+# 로거 초기화
+logger = get_logger(__name__)
 
 
 # ====================
@@ -38,9 +43,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         - 리소스 정리
     """
     # 시작 시 실행
-    print("🚀 Starting application...")
-    print(f"📦 Environment: {settings.ENVIRONMENT}")
-    print(f"🗄️  Database: {settings.POSTGRES_DB}")
+    # 로깅 초기화 (가장 먼저!)
+    setup_logging()
+
+    logger.info("🚀 Starting application...")
+    logger.info(f"📦 Environment: {settings.ENVIRONMENT}")
+    logger.info(f"🗄️  Database: {settings.POSTGRES_DB}")
 
     # TODO: 필요한 초기화 작업
     # - 데이터베이스 마이그레이션 확인
@@ -55,9 +63,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     yield
 
     # 종료 시 실행
-    print("👋 Shutting down application...")
+    logger.info("👋 Shutting down application...")
     await DatabaseManager.close_connections()
-    print("✅ Application shutdown complete")
+    logger.info("✅ Application shutdown complete")
 
 
 # ====================
@@ -116,6 +124,12 @@ def create_application() -> FastAPI:
     # Middleware 설정
     # ====================
 
+    # Request ID 추적 (가장 먼저 추가!)
+    app.add_middleware(RequestIDMiddleware)
+
+    # 외부 로깅 서비스 (stub)
+    app.add_middleware(ExternalLoggingMiddleware)
+
     # CORS 설정
     app.add_middleware(
         CORSMiddleware,
@@ -135,8 +149,6 @@ def create_application() -> FastAPI:
         pass
 
     # TODO: 추가 미들웨어
-    # - 요청 ID 추적
-    # - 로깅
     # - 메트릭 수집
     # - Rate Limiting
 
@@ -154,6 +166,20 @@ def create_application() -> FastAPI:
 
         비즈니스 로직에서 발생한 예외를 적절한 HTTP 응답으로 변환합니다.
         """
+        # Request ID 가져오기
+        request_id = getattr(request.state, 'request_id', None)
+
+        # 로깅
+        logger.warning(
+            f"Application exception: {exc.message}",
+            extra={
+                "request_id": request_id,
+                "exception_type": type(exc).__name__,
+                "status_code": exc.status_code,
+                "details": exc.details,
+            }
+        )
+
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -172,8 +198,20 @@ def create_application() -> FastAPI:
 
         예상치 못한 예외를 처리합니다.
         """
-        # TODO: 로깅 및 알림
-        # logger.error(f"Unexpected error: {str(exc)}", exc_info=True)
+        # Request ID 가져오기
+        request_id = getattr(request.state, 'request_id', None)
+
+        # 로깅 및 알림
+        logger.error(
+            f"Unexpected error: {str(exc)}",
+            extra={
+                "request_id": request_id,
+                "exception_type": type(exc).__name__,
+                "path": request.url.path,
+                "method": request.method,
+            },
+            exc_info=True
+        )
 
         # 개발 환경에서는 상세 에러 표시
         if settings.DEBUG:

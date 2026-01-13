@@ -12,6 +12,8 @@ from server.app.shared.exceptions import CalculatorException
 from server.app.examples.sample_domain.schemas import (
     SampleCalculatorInput,
     SampleCalculatorOutput,
+    SimpleCalculatorInput,
+    SimpleCalculatorOutput,
 )
 
 
@@ -294,3 +296,66 @@ class SampleScoreCalculator(BaseCalculator[dict, float]):
 
         # 스텁
         return 0.75
+
+
+# ====================
+# Simple Mock Calculator (교과서 예제)
+# ====================
+
+
+class SimpleMockCalculator(BaseCalculator[SimpleCalculatorInput, SimpleCalculatorOutput]):
+    """
+    간단한 Mock 계산기
+
+    GET /api/v1/sample 엔드포인트를 위한 교과서 예제입니다.
+    Provider에서 받은 데이터를 간단히 가공합니다.
+
+    책임:
+        - 데이터 필터링 (status가 'active'인 것만)
+        - 데이터 카운팅
+        - 간단한 변환
+
+    이 Calculator는 다음을 보여줍니다:
+        - Calculator의 기본 구조
+        - BaseCalculator 상속 방법
+        - 순수 함수 원칙 (부수 효과 없음)
+        - 입력/출력 DTO 사용법
+    """
+
+    async def calculate(self, input_data: SimpleCalculatorInput) -> SimpleCalculatorOutput:
+        """
+        데이터를 가공합니다.
+
+        Args:
+            input_data: Provider에서 받은 원본 데이터
+
+        Returns:
+            SimpleCalculatorOutput: 가공된 데이터와 카운트
+
+        NOTE: Calculator는 순수 함수여야 합니다.
+              - 동일한 입력 → 동일한 출력
+              - 외부 상태를 변경하지 않음
+              - DB 조회, API 호출 등 I/O 작업 금지
+        """
+        # 1. 데이터 필터링: status가 'active'인 것만
+        active_items = [
+            item for item in input_data.items
+            if item.get("status") == "active"
+        ]
+
+        # 2. 데이터 변환: 추가 정보 붙이기 (예시)
+        processed_items = []
+        for item in active_items:
+            processed_item = item.copy()
+            # 예: 추가 필드 계산
+            processed_item["display_name"] = f"[{item['category']}] {item['name']}"
+            processed_item["is_recent"] = True  # 예시
+            processed_items.append(processed_item)
+
+        # 3. 카운트
+        total_count = len(processed_items)
+
+        return SimpleCalculatorOutput(
+            processed_items=processed_items,
+            total_count=total_count
+        )
