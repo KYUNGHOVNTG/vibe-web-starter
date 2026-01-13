@@ -27,6 +27,7 @@
 3. **의존성 주입(DI)**: 테스트 가능하고 결합도 낮은 설계
 4. **타입 안전성**: Pydantic v2 + mypy로 런타임/컴파일타임 검증
 5. **비동기 최적화**: async/await 기반 고성능 I/O
+6. **운영 준비 완료**: Request ID 로깅, Health Check, Version 엔드포인트 내장
 
 ### 디렉토리 구조
 
@@ -37,7 +38,10 @@ server/
     ├── core/                        # 🔧 핵심 인프라
     │   ├── config.py                # 환경 설정 (BaseSettings)
     │   ├── database.py              # DB 엔진, 세션, 유틸리티
-    │   └── dependencies.py          # FastAPI 의존성 (DB, Auth, Pagination)
+    │   ├── dependencies.py          # FastAPI 의존성 (DB, Auth, Pagination)
+    │   ├── logging.py               # 로깅 설정 (Request ID 포함)
+    │   ├── middleware.py            # 미들웨어 (Request ID, External Logging)
+    │   └── routers.py               # Core 엔드포인트 (Health, Version)
     │
     ├── shared/                      # 🔗 공유 컴포넌트
     │   ├── base/                    # 추상 베이스 클래스
@@ -67,6 +71,118 @@ server/
             ├── router.py            # API 라우터 통합
             └── endpoints/           # 도메인별 엔드포인트
                 └── {domain}.py      # FastAPI 라우터
+```
+
+---
+
+## 🏥 Core 인프라 (Health, Version, Logging)
+
+### 1. Health Check 엔드포인트
+
+**엔드포인트**: `GET /core/health`
+
+```python
+# server/app/core/routers.py
+@router.get("/health")
+async def health_check() -> Dict[str, Any]:
+    """
+    서비스 상태 확인
+
+    Returns:
+        {"status": "ok", "env": "production"}
+
+    사용 사례:
+        - Kubernetes Liveness/Readiness Probe
+        - 로드밸런서 헬스체크
+        - 모니터링 툴 (Datadog, New Relic)
+    """
+    service = HealthCheckService()
+    return await service.get_health_status()
+```
+
+### 2. Version 엔드포인트
+
+**엔드포인트**: `GET /core/version`
+
+```python
+# 배포 후 버전 확인용
+@router.get("/version")
+async def version_info() -> Dict[str, Any]:
+    """
+    애플리케이션 버전 정보
+
+    Returns:
+        {
+            "version": "1.0.0",
+            "env": "production",
+            "app_name": "AI Worker Project"
+        }
+
+    활용:
+        - 배포 확인
+        - 프론트엔드에서 API 버전 체크
+        - 디버깅 시 환경 확인
+    """
+    service = VersionService()
+    return await service.get_version_info()
+```
+
+### 3. Request ID 로깅
+
+**미들웨어**: `server/app/core/middleware.py`
+
+```python
+class RequestIDMiddleware:
+    """
+    모든 요청에 대해 고유한 Request ID 생성/추적
+
+    기능:
+        - X-Request-ID 헤더 수신 또는 UUID 생성
+        - request.state.request_id에 저장
+        - 응답 헤더에 X-Request-ID 포함
+        - 모든 로그에 Request ID 자동 포함
+
+    로그 예시:
+        [req_id=550e8400-e29b-41d4-a716-446655440000] POST /api/v1/sample/analyze - 200 (0.123s)
+    """
+```
+
+**로거 사용법**:
+
+```python
+from server.app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+# Service나 Router에서 사용
+logger.info(
+    "User action completed",
+    extra={
+        "request_id": request.state.request_id,
+        "user_id": user.id,
+        "action": "create"
+    }
+)
+
+# 출력 예시:
+# [req_id=550e8400-e29b-41d4-a716-446655440000] 2024-01-01 12:00:00 - server.app.domain.user - INFO - User action completed
+```
+
+**외부 로깅 서비스 연동 (Stub)**:
+
+```python
+# server/app/core/logging.py
+class ExternalLoggingService:
+    """
+    Sentry, DataDog, CloudWatch 등 외부 로깅 서비스 연동을 위한 Stub
+
+    TODO: 실제 구현 시
+        - Sentry: sentry_sdk.capture_exception()
+        - DataDog: datadog.api.Event.create()
+        - CloudWatch: boto3.client('logs').put_log_events()
+    """
+    async def send_error(self, error: Exception, context: dict):
+        pass  # 실제 구현 필요
 ```
 
 ---
