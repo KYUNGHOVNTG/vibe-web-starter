@@ -375,6 +375,88 @@ class TimeSeriesCalculator(BaseCalculator):
 5. **하위 계층이 상위 계층 참조 금지**
 6. **도메인 간 직접 의존성 금지**
 
+## 로깅 & 모니터링 인프라
+
+### 1. Request ID 추적
+
+모든 HTTP 요청에 고유한 Request ID를 할당하여 로그를 추적 가능하게 만듭니다.
+
+```python
+# server/app/core/middleware.py
+class RequestIDMiddleware:
+    """
+    - X-Request-ID 헤더에서 Request ID 수신 또는 UUID 생성
+    - Request ID를 request.state에 저장
+    - 응답 헤더에 Request ID 포함
+    - 모든 로그에 Request ID 자동 포함
+    """
+```
+
+**사용 예시:**
+```python
+# 로깅 시 Request ID 자동 포함
+logger.info(
+    "Processing payment",
+    extra={"request_id": request.state.request_id}
+)
+
+# 로그 출력 예시:
+# [req_id=550e8400-e29b-41d4-a716-446655440000] Processing payment
+```
+
+### 2. 구조화된 로깅
+
+```python
+# server/app/core/logging.py
+class RequestIDFormatter:
+    """
+    로그에 Request ID를 자동으로 포함하는 포맷터
+    """
+
+# 로거 설정
+logger = get_logger(__name__)
+logger.info("User created", extra={
+    "request_id": request_id,
+    "user_id": user.id,
+    "action": "create_user"
+})
+```
+
+### 3. Health Check & Monitoring
+
+```python
+# server/app/core/routers.py
+
+# Health Check 엔드포인트
+GET /core/health
+→ {"status": "ok", "env": "production"}
+
+# Version 엔드포인트
+GET /core/version
+→ {"version": "1.0.0", "env": "production", "app_name": "..."}
+
+# 사용 사례:
+# - Kubernetes Liveness/Readiness Probe
+# - 로드밸런서 헬스체크
+# - 모니터링 툴 (Datadog, New Relic)
+# - 배포 후 버전 확인
+```
+
+### 4. 외부 로깅 서비스 연동 (Stub)
+
+```python
+# server/app/core/logging.py
+class ExternalLoggingService:
+    """
+    Sentry, DataDog, CloudWatch 등 외부 로깅 서비스 연동을 위한 Stub
+    """
+    async def send_error(self, error: Exception, context: dict):
+        # TODO: 실제 구현 시 외부 서비스 연동
+        pass
+```
+
+---
+
 ## 성능 고려사항
 
 ### 1. 데이터베이스 쿼리 최적화
@@ -395,6 +477,59 @@ class TimeSeriesCalculator(BaseCalculator):
 - 계산 결과 캐싱 (Calculator)
 - API 응답 캐싱 (필요시)
 
+## 프론트엔드 에러 & 로딩 처리
+
+### 1. 전역 에러 처리
+
+```tsx
+// client/src/core/errors/ErrorBoundary.tsx
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+
+/**
+ * React Error Boundary로 컴포넌트 에러 포착
+ * - 에러 발생 시 Fallback UI 표시
+ * - 에러 로깅 (Sentry 등 연동 가능)
+ * - "다시 시도" 기능 제공
+ */
+```
+
+### 2. 전역 로딩 상태
+
+```tsx
+// client/src/core/loading/LoadingOverlay.tsx
+<LoadingOverlay />
+
+// 사용 예시
+LoadingManager.show('데이터를 불러오는 중...');
+await fetchData();
+LoadingManager.hide();
+
+/**
+ * 전역 로딩 오버레이
+ * - API 요청 중 사용자 피드백 제공
+ * - 스피너 + 메시지 표시
+ * - LoadingManager로 show/hide 제어
+ */
+```
+
+### 3. API 에러 처리
+
+```typescript
+// client/src/core/errors/ApiErrorHandler.ts
+/**
+ * API 에러를 사용자 친화적인 메시지로 변환
+ * - 400: 잘못된 요청
+ * - 401: 인증 필요
+ * - 403: 권한 없음
+ * - 404: 리소스 없음
+ * - 500: 서버 오류
+ */
+```
+
+---
+
 ## 보안 고려사항
 
 ### 1. 인증/인가
@@ -414,6 +549,7 @@ class TimeSeriesCalculator(BaseCalculator):
 - 비밀번호 해싱
 - 민감정보 마스킹 (Formatter)
 - 로그에 민감정보 제외
+- Request ID 로그로 추적 가능하지만 민감정보는 로깅하지 않음
 
 ## 테스트 전략
 

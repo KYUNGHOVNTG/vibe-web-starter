@@ -31,6 +31,7 @@ FastAPI + SQLAlchemy 2.0 + React 19 + Tailwind 4 기반의 엔터프라이즈급
 - **타입 안전성**: Pydantic v2 + SQLAlchemy 2.0 + TypeScript로 런타임 에러 최소화
 - **비동기 최적화**: async/await 기반으로 높은 처리량 보장
 - **모던 기술 스택**: React 19, Tailwind 4, Zustand 등 최신 기술 적용
+- **운영 준비 완료**: Request ID 로깅, Health Check, 전역 에러/로딩 처리 내장
 
 ---
 
@@ -72,6 +73,8 @@ FastAPI + SQLAlchemy 2.0 + React 19 + Tailwind 4 기반의 엔터프라이즈급
 | **Migration** | Alembic 1.13.1 | 데이터베이스 스키마 버전 관리 |
 | **Testing** | pytest 7.4.4 + pytest-asyncio 0.23.3 | 비동기 테스트 지원 |
 | **Code Quality** | black + isort + ruff + mypy | 자동 포맷팅, 린팅, 타입 체크 |
+| **Logging** | Request ID 추적, 구조화된 로그 | 운영 환경 로깅 및 추적 |
+| **Monitoring** | Health Check + Version Endpoint | 서비스 상태 모니터링 |
 
 ### 프론트엔드 (TypeScript 5.9)
 
@@ -85,6 +88,8 @@ FastAPI + SQLAlchemy 2.0 + React 19 + Tailwind 4 기반의 엔터프라이즈급
 | **Routing** | React Router DOM 7.12.0 | SPA 라우팅 |
 | **Animation** | Framer Motion 12.25.0 | 부드러운 UI 애니메이션 |
 | **Icons** | Lucide React 0.562.0 | 일관된 아이콘 시스템 |
+| **Error Handling** | ErrorBoundary + ApiErrorHandler | 전역 에러 처리 |
+| **Loading** | LoadingOverlay + LoadingManager | 전역 로딩 상태 관리 |
 
 ### 인프라 & DevOps
 
@@ -107,7 +112,10 @@ ai-worker-project/
 │       ├── 📁 core/                    # 핵심 인프라
 │       │   ├── config.py               # 환경 설정 (Pydantic Settings)
 │       │   ├── database.py             # SQLAlchemy 엔진 & 세션
-│       │   └── dependencies.py         # FastAPI DI (DB, Auth, Pagination)
+│       │   ├── dependencies.py         # FastAPI DI (DB, Auth, Pagination)
+│       │   ├── logging.py              # 로깅 설정 (Request ID 포함)
+│       │   ├── middleware.py           # 미들웨어 (Request ID, External Logging)
+│       │   └── routers.py              # Core 엔드포인트 (Health, Version)
 │       ├── 📁 shared/                  # 공유 컴포넌트
 │       │   ├── 📁 base/                # 추상 베이스 클래스
 │       │   │   ├── service.py          # BaseService (Facade + Template Method)
@@ -136,6 +144,8 @@ ai-worker-project/
 │   │   ├── App.tsx                     # 메인 앱 컴포넌트
 │   │   ├── 📁 core/                    # 핵심 유틸리티 & 인프라
 │   │   │   ├── 📁 api/                 # API 클라이언트 (Axios 싱글톤)
+│   │   │   ├── 📁 errors/              # 에러 처리 (ErrorBoundary, ApiErrorHandler)
+│   │   │   ├── 📁 loading/             # 로딩 처리 (LoadingOverlay, LoadingManager)
 │   │   │   ├── 📁 hooks/               # 커스텀 훅 (useApi, useDebounce)
 │   │   │   ├── 📁 layout/              # 레이아웃 (Header, Sidebar, MainLayout)
 │   │   │   ├── 📁 store/               # 전역 상태 (useAuthStore)
@@ -294,6 +304,8 @@ npm run dev
 
 - **백엔드 API**: http://localhost:8000
 - **API 문서 (Swagger)**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/core/health
+- **Version Info**: http://localhost:8000/core/version
 - **프론트엔드**: http://localhost:3000
 
 ---

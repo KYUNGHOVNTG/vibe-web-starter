@@ -28,6 +28,7 @@
 3. **상태 관리 분산**: 전역 상태(Auth) + 도메인별 상태(Zustand) 분리
 4. **타입 안전성**: TypeScript로 컴파일 타임 에러 방지
 5. **API 레이어 추상화**: Axios 싱글톤 + 도메인별 API 모듈로 분리
+6. **전역 에러/로딩 처리**: ErrorBoundary + LoadingManager로 사용자 경험 향상
 
 ### 기술 스택
 
@@ -57,6 +58,15 @@ client/
 │   │   │   ├── client.ts            # Axios 싱글톤 (ApiClient)
 │   │   │   ├── types.ts             # API 응답 타입
 │   │   │   └── index.ts             # 내보내기
+│   │   ├── 📁 errors/               # 에러 처리
+│   │   │   ├── ErrorBoundary.tsx    # React Error Boundary
+│   │   │   ├── ErrorFallback.tsx    # 에러 Fallback UI
+│   │   │   ├── ApiErrorHandler.ts   # API 에러 핸들러
+│   │   │   └── index.ts
+│   │   ├── 📁 loading/              # 로딩 처리
+│   │   │   ├── LoadingOverlay.tsx   # 전역 로딩 오버레이
+│   │   │   ├── LoadingManager.ts    # 로딩 상태 관리
+│   │   │   └── index.ts
 │   │   ├── 📁 hooks/                # 커스텀 훅
 │   │   │   ├── useApi.ts            # API 호출 훅 (로딩, 에러 처리)
 │   │   │   ├── useDebounce.ts       # 디바운스 훅
@@ -109,6 +119,121 @@ client/
 ├── postcss.config.js                # PostCSS 설정
 ├── eslint.config.mjs                # ESLint 설정
 └── .env.example                     # 환경 변수 예시
+```
+
+---
+
+## 🛡️ 에러 & 로딩 처리
+
+### 1. 전역 에러 처리 (ErrorBoundary)
+
+**파일**: `client/src/core/errors/ErrorBoundary.tsx`
+
+```tsx
+/**
+ * React Error Boundary로 컴포넌트 에러 포착
+ *
+ * main.tsx에서 사용:
+ *    <ErrorBoundary>
+ *      <App />
+ *    </ErrorBoundary>
+ *
+ * 기능:
+ *    - 컴포넌트 렌더링 중 에러 포착
+ *    - 에러 Fallback UI 표시
+ *    - 에러 로깅 (Sentry 등 연동 가능)
+ *    - "다시 시도" 기능 제공
+ *
+ * 주의사항:
+ *    Error Boundary는 다음 에러를 포착하지 못합니다:
+ *    - 이벤트 핸들러 내부 에러 (try-catch 사용)
+ *    - 비동기 코드 (setTimeout, Promise)
+ *    - SSR 에러
+ */
+```
+
+### 2. 전역 로딩 상태 (LoadingOverlay)
+
+**파일**: `client/src/core/loading/LoadingOverlay.tsx`
+
+```tsx
+/**
+ * 전역 로딩 오버레이 컴포넌트
+ *
+ * App.tsx에서 사용:
+ *    <LoadingOverlay />
+ *
+ * 사용 예시:
+ *    import { LoadingManager } from '@/core/loading';
+ *
+ *    const handleSubmit = async () => {
+ *      LoadingManager.show('데이터를 저장하는 중...');
+ *      try {
+ *        await api.saveData(data);
+ *      } finally {
+ *        LoadingManager.hide();
+ *      }
+ *    };
+ *
+ * 기능:
+ *    - API 요청 중 사용자 피드백 제공
+ *    - 스피너 + 커스텀 메시지 표시
+ *    - LoadingManager로 show/hide 제어
+ *    - 전체 화면 오버레이
+ */
+```
+
+### 3. API 에러 처리
+
+**파일**: `client/src/core/errors/ApiErrorHandler.ts`
+
+```typescript
+/**
+ * API 에러를 사용자 친화적인 메시지로 변환
+ *
+ * HTTP 상태 코드별 처리:
+ *    - 400: 잘못된 요청 (입력 검증 실패)
+ *    - 401: 인증 필요 (로그인 필요)
+ *    - 403: 권한 없음 (접근 거부)
+ *    - 404: 리소스 없음
+ *    - 500: 서버 오류
+ *
+ * 사용 예시:
+ *    try {
+ *      await api.fetchData();
+ *    } catch (error) {
+ *      const message = handleApiError(error);
+ *      toast.error(message);
+ *    }
+ */
+```
+
+### 4. 사용 패턴 비교
+
+```tsx
+// ✅ 권장: LoadingManager 사용 (전역 로딩)
+import { LoadingManager } from '@/core/loading';
+
+const handleSubmit = async () => {
+  LoadingManager.show('저장 중...');
+  try {
+    await api.saveData(data);
+  } finally {
+    LoadingManager.hide();
+  }
+};
+
+// ✅ 권장: useApi 훅 사용 (컴포넌트 레벨)
+const { loading, execute } = useApi(api.fetchData);
+
+useEffect(() => {
+  execute();
+}, []);
+
+if (loading) return <Spinner />;
+
+// ❌ 금지: 컴포넌트별 로딩 상태 남발
+const [loading, setLoading] = useState(false);  // 여러 곳에서 중복
 ```
 
 ---
