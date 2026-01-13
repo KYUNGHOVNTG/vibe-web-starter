@@ -13,6 +13,9 @@ from server.app.shared.exceptions import FormatterException
 from server.app.examples.sample_domain.schemas import (
     SampleAnalysisResponse,
     SampleFormatterInput,
+    SimpleFormatterInput,
+    SampleListResponse,
+    SampleItem,
 )
 
 
@@ -235,3 +238,94 @@ class SampleExportFormatter(BaseFormatter[dict, dict]):
                 # 데이터 행들...
             ],
         }
+
+
+# ====================
+# Simple Mock Formatter (교과서 예제)
+# ====================
+
+
+class SimpleMockFormatter(BaseFormatter[SimpleFormatterInput, SampleListResponse]):
+    """
+    간단한 Mock 포맷터
+
+    GET /api/v1/sample 엔드포인트를 위한 교과서 예제입니다.
+    Calculator에서 받은 데이터를 API 응답 형식으로 변환합니다.
+
+    책임:
+        - 내부 데이터 구조를 API 스키마로 변환
+        - 응답 메시지 생성
+        - Pydantic 모델로 변환
+
+    이 Formatter는 다음을 보여줍니다:
+        - Formatter의 기본 구조
+        - BaseFormatter 상속 방법
+        - Pydantic 모델 변환
+        - 응답 메시지 생성
+    """
+
+    async def format(self, input_data: SimpleFormatterInput) -> SampleListResponse:
+        """
+        가공된 데이터를 API 응답 형식으로 변환합니다.
+
+        Args:
+            input_data: Calculator에서 받은 가공된 데이터
+
+        Returns:
+            SampleListResponse: API 응답 스키마
+
+        Raises:
+            FormatterException: 포맷팅 중 오류 발생 시
+
+        NOTE: Formatter는 단순 변환만 수행합니다.
+              - 비즈니스 로직 없음
+              - 외부 의존성 없음
+              - 순수 함수
+        """
+        try:
+            # 1. dict를 Pydantic 모델로 변환
+            items = [
+                SampleItem(
+                    id=item["id"],
+                    name=item["name"],
+                    description=item["description"],
+                    category=item["category"],
+                    status=item["status"]
+                )
+                for item in input_data.processed_items
+            ]
+
+            # 2. 응답 메시지 생성
+            message = self._generate_message(input_data.total_count)
+
+            # 3. 최종 응답 객체 생성
+            response = SampleListResponse(
+                items=items,
+                total_count=input_data.total_count,
+                message=message
+            )
+
+            return response
+
+        except Exception as e:
+            raise FormatterException(
+                f"Failed to format response: {str(e)}",
+                details={"total_count": input_data.total_count}
+            )
+
+    def _generate_message(self, count: int) -> str:
+        """
+        응답 메시지를 생성합니다.
+
+        Args:
+            count: 아이템 개수
+
+        Returns:
+            str: 응답 메시지
+        """
+        if count == 0:
+            return "조회된 샘플 데이터가 없습니다."
+        elif count == 1:
+            return "1개의 샘플 데이터를 성공적으로 조회했습니다."
+        else:
+            return f"{count}개의 샘플 데이터를 성공적으로 조회했습니다."

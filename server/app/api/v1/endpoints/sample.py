@@ -15,10 +15,14 @@ from server.app.core.dependencies import (
     get_pagination,
     PaginationParams,
 )
-from server.app.examples.sample_domain.service import SampleDomainService
+from server.app.examples.sample_domain.service import (
+    SampleDomainService,
+    SimpleGetService,
+)
 from server.app.examples.sample_domain.schemas import (
     SampleAnalysisRequest,
     SampleAnalysisResponse,
+    SampleListResponse,
 )
 
 # 라우터 생성
@@ -30,6 +34,80 @@ router = APIRouter(
         500: {"description": "Internal server error"},
     },
 )
+
+
+# ====================
+# GET 엔드포인트 (교과서 예제)
+# ====================
+
+
+@router.get(
+    "",
+    response_model=SampleListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="샘플 데이터 목록 조회",
+    description="""
+    샘플 데이터 목록을 조회합니다.
+
+    이 엔드포인트는 **Router → Service → Provider → Calculator → Formatter** 흐름을
+    보여주는 교과서 예제입니다.
+
+    **각 레이어의 책임:**
+    - **Router**: HTTP 요청 수신, 응답 반환
+    - **Service**: 비즈니스 로직 조율 (Provider, Calculator, Formatter 조합)
+    - **Provider**: 데이터 제공 (DB, API, 파일 등)
+    - **Calculator**: 데이터 가공 및 계산 (순수 함수)
+    - **Formatter**: API 응답 형식으로 변환
+
+    **Response:**
+    - `items`: 샘플 아이템 목록 (status가 'active'인 것만)
+    - `total_count`: 아이템 개수
+    - `message`: 응답 메시지
+
+    **NOTE:**
+    - 실제 비즈니스 로직 없음 (mock 데이터 사용)
+    - 새로운 도메인 API를 만들 때 이 구조를 참고하세요
+    """,
+)
+async def get_sample_list(
+    db: AsyncSession = Depends(get_database_session),
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+) -> SampleListResponse:
+    """
+    샘플 데이터 목록을 조회합니다.
+
+    Args:
+        db: 데이터베이스 세션
+        current_user: 현재 사용자 정보 (선택)
+
+    Returns:
+        SampleListResponse: 샘플 데이터 목록
+
+    Raises:
+        HTTPException: 처리 중 오류 발생 시
+    """
+    # Service 인스턴스 생성
+    service = SimpleGetService(db)
+
+    # Service 실행
+    result = await service.execute(
+        None,
+        user_id=current_user.get("id") if current_user else None
+    )
+
+    # 결과 처리
+    if result.success:
+        return result.data
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.error
+        )
+
+
+# ====================
+# POST 엔드포인트 (기존)
+# ====================
 
 
 @router.post(
