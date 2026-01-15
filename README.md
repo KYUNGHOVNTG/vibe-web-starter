@@ -269,7 +269,9 @@ cd ai-worker-project
 # 2. Python 가상환경 생성 & 활성화
 python3 -m venv .venv
 
-.venv\Scripts\activate
+.venv\Scripts\activate # 보안 오류 시 다음 명령어 입력 
+
+# Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 # 3. 의존성 설치
 pip install -r requirements.txt
