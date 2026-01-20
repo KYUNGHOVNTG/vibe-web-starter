@@ -255,7 +255,7 @@ async def analyze_data(request: SampleAnalysisRequest, db: AsyncSession = Depend
 
 ### 사전 준비사항
 
-- **Python 3.12+** ([다운로드](https://www.python.org/downloads/))
+- **Python 3.12** ([다운로드](https://www.python.org/downloads/))
 - **Node.js 18+** ([다운로드](https://nodejs.org/))
 - **Supabase 계정** (권장) - [무료 가입](https://supabase.com)
 - 또는 **PostgreSQL** (로컬 개발) - [다운로드](https://www.postgresql.org/download/)
@@ -296,16 +296,16 @@ cp .env.example .env
 #      - Settings > Database > Connection string 탭
 #      - Type: URI 선택
 #      - Source: Primary Database 선택
-#      - Method: "Transaction pooler" 선택 (권장, 포트 6543)
+#      - Method: "Transaction pooler" 선택 (권장, 포트 5432)
 #      - Connection string 복사
-#      - 형식: postgresql://postgres.[PROJECT-ID]:[PASSWORD]@aws-0-xx-xx.pooler.supabase.com:6543/postgres
+#      - 형식: postgresql://postgres.[PROJECT-ID]:[PASSWORD]@aws-0-xx-xx.pooler.supabase.com:5432/postgres
 
 # 5-4. .env 파일에 DATABASE_URL 설정
 #      - postgresql:// → postgresql+asyncpg:// 로 변경 (asyncpg 드라이버 명시)
 #      - 비밀번호에 특수문자가 있으면 URL 인코딩 필수
 #        예: ! → %21, @ → %40, # → %23
 #      - 예시:
-#        DATABASE_URL=postgresql+asyncpg://postgres.cafquolsrqkhpqejgojd:yourP%40ssw0rd%21@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
+#        DATABASE_URL=postgresql+asyncpg://postgres.cafquolsrqkhpqejgojd:yourP%40ssw0rd%21@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres
 
 # 5-5. 설정 확인
 #      - 개별 변수(POSTGRES_HOST 등)는 주석 처리 또는 삭제

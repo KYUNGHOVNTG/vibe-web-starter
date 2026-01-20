@@ -34,6 +34,27 @@ Cursor나 Claude AI 에이전트와 협업할 때 다음 규칙을 **엄격히**
 
 ---
 
+🗄️ DB Migration & Model Rule (필수)
+
+1. **모든 스키마 및 데이터 변경은 migration SQL로 관리**:
+   - 테이블 생성, 변경, 삭제 (CREATE, ALTER, DROP, RENAME 등)
+   - 기초 데이터 생성, 수정, 삭제 (INSERT, UPDATE, DELETE 등)
+   - DB 콘솔에서 직접 실행하지 않고, 반드시 루트 `/migration/` 폴더 하위에 SQL 파일로 이력 관리한다.
+
+2. **파일명 규칙 (필수)**: `YYYYMMDD_행위명.sql`
+   - 예) `20260119_create_user_table.sql`, `20260120_alter_user_add_phone.sql`, `20260121_seed_initial_data.sql`
+
+3. **변경 원칙**:
+   - 기존 migration 파일 수정 금지 (Append-only)
+   - 테이블 정의 변경 시 **반드시** 해당 도메인의 모델(`server/app/domain/{domain}/models/`)을 함께 작성하거나 수정해야 한다.
+
+4. **AI 에이전트 규칙**:
+   - DB 테이블 정의 또는 데이터 변경이 필요할 시:
+     1. 반드시 **migration SQL 생성 안내 및 내용 제시**를 우선한다.
+     2. 사용자의 확인 후 **SQL 파일 생성**과 함께 **도메인 모델(SQLAlchemy) 및 Repository** 변경을 즉시 진행한다.
+
+---
+
 ## 🐍 Backend (Python) Rules
 
 ### 1. 클래스 기반 설계
