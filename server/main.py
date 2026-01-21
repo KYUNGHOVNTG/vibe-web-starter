@@ -3,7 +3,7 @@ FastAPI 애플리케이션 진입점
 
 AI 데이터 분석 웹 서비스의 메인 애플리케이션입니다.
 """
-
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -11,17 +11,47 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from rich.logging import RichHandler
 
 from server.app.core.config import settings
 from server.app.core.database import DatabaseManager
 from server.app.core.routers import router as core_router
-from server.app.core.logging import setup_logging, get_logger
 from server.app.core.middleware import RequestIDMiddleware, ExternalLoggingMiddleware
 from server.app.api.v1.router import api_router
 from server.app.shared.exceptions import ApplicationException
 
-# 로거 초기화
-logger = get_logger(__name__)
+from rich.console import Console, Group
+from rich.panel import Panel
+from rich.text import Text
+from rich.align import Align
+
+logging.basicConfig(
+    level="INFO",  # 보고 싶은 로그 레벨 (DEBUG, INFO 등)
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[
+        RichHandler(
+            rich_tracebacks=True,          # 예외 발생 시 Rich 스타일 Traceback 출력
+            tracebacks_show_locals=False,   # 로컬 변수 값 표시 (상세 디버깅용)
+            markup=True
+        )
+    ]
+)
+
+# Uvicorn 로그 제거 및 Rich 적용
+uvicorn_error = logging.getLogger("uvicorn.error")
+uvicorn_error.handlers = [
+    RichHandler(rich_tracebacks=True, tracebacks_show_locals=False, markup=True)
+]
+uvicorn_error.propagate = False
+
+uvicorn_access = logging.getLogger("uvicorn.access")
+uvicorn_access.handlers = [
+    RichHandler(rich_tracebacks=True, tracebacks_show_locals=False, markup=True)
+]
+uvicorn_access.propagate = False
+
+logger = logging.getLogger("uvicorn")
 
 
 # ====================
@@ -42,10 +72,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         - 데이터베이스 연결 종료
         - 리소스 정리
     """
-    # 시작 시 실행
-    # 로깅 초기화 (가장 먼저!)
-    setup_logging()
 
+    print_vibe_signature()
+
+    # 시작 시 실행
     logger.info("🚀 Starting application...")
     logger.info(f"📦 Environment: {settings.ENVIRONMENT}")
     logger.info(f"🗄️  Database: {settings.POSTGRES_DB}")
@@ -300,3 +330,54 @@ if __name__ == "__main__":
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower(),
     )
+
+# ==========================================
+# VIBE WEB STARTER SIGNATURE
+# ==========================================
+def print_vibe_signature():
+
+    console = Console()
+
+    ascii_art = r"""
+██╗   ██╗██╗██████╗ ███████╗    ██╗    ██╗███████╗██████╗ 
+██║   ██║██║██╔══██╗██╔════╝    ██║    ██║██╔════╝██╔══██╗
+██║   ██║██║██████╔╝█████╗      ██║ █╗ ██║█████╗  ██████╔╝
+╚██╗ ██╔╝██║██╔══██╗██╔══╝      ██║███╗██║██╔══╝  ██╔══██╗
+ ╚████╔╝ ██║██████╔╝███████╗    ╚███╔███╔╝███████╗██████╔╝
+  ╚═══╝  ╚═╝╚═════╝ ╚══════╝     ╚══╝╚══╝ ╚══════╝╚═════╝ 
+███████╗████████╗ █████╗ ██████╗ ████████╗███████╗██████╗ 
+██╔════╝╚══██╔══╝██╔══██╗██╔══██╗╚══██╔══╝██╔════╝██╔══██╗
+███████╗   ██║   ███████║██████╔╝   ██║   █████╗  ██████╔╝
+╚════██║   ██║   ██╔══██║██╔══██╗   ██║   ██╔══╝  ██╔══██╗
+███████║   ██║   ██║  ██║██║  ██║   ██║   ███████╗██║  ██║
+╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+"""
+    styled_art = Text(ascii_art)
+    styled_art.stylize("bold bright_cyan", 0, len(ascii_art) // 2)
+    styled_art.stylize("bold dodger_blue1", len(ascii_art) // 2, len(ascii_art))
+
+    info_content = Text.from_markup(
+        f"\n[gray30]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/gray30]\n"
+        f" 🚀 [bold white]AI Vibe Web Starter[/bold white]  [green]v{settings.APP_VERSION}[/green]\n\n"
+        f" 👨‍💻 Created by : [bold cyan]최경호[/bold cyan]\n"
+        f" 📮 Contact    : [underline sky_blue2]cjhol2107@vntgcorp.com[/underline sky_blue2]\n"
+        f" ✨ [italic gray70]Code with Vibe, Build with Speed.[/italic gray70]"
+    )
+    
+    final_render = Group(
+        styled_art,
+        Align.center(info_content)
+    )
+
+    panel = Panel(
+        final_render,
+        border_style="bright_cyan",
+        title="[bold white] Welcome Back [/bold white]",
+        subtitle="[bold white] Server Ready [/bold white]",
+        expand=False,
+        padding=(1, 4)
+    )
+
+    console.print("\n")
+    console.print(panel)
+    console.print("\n")
