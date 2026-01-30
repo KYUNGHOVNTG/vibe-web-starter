@@ -38,7 +38,7 @@
 cd project-name
 
 # 1. Python 가상환경 생성
-py -3.12 -m venv .venv
+python -m venv .venv
 
 # 2. 가상환경 활성화 (Windows 기준)
 .venv\Scripts\activate
