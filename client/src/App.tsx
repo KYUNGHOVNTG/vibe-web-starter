@@ -133,11 +133,6 @@ function App() {
 
         {/* 2. Hero Section - 와이드 & 클린 */}
         <section className="max-w-7xl mx-auto px-6 pt-24 pb-32 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-bold mb-8">
-            <Activity size={16} />
-            <span>New: 바이브코딩 환경 2026</span>
-          </div>
-
           <h1 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-8">
             바이브코딩 웹 템플릿, <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">누구나 쉽게 1분만에 시작</span>
